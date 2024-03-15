@@ -518,7 +518,7 @@ def main(argv):
 
     Main_Title(st.session_state.locale.title[0] + " (v0.0.0)")
 
-    st.session_state.info_placeholder = st.expander("Interface to LLM")
+    st.session_state.info_placeholder = st.expander("Interface to LLM (Mixtral-8x7B-Instruct)")
     st.session_state.role_placeholder = st.empty()        # showing system role selected
 
     app_info = "This application is hosted locally, however the AI model is centrally hosted by Hugging Face."
@@ -643,6 +643,7 @@ if __name__ == "__main__":
 
     st.sidebar.button(st.session_state.locale.chat_clear_btn[0], on_click=Clear_Chat)
     st.sidebar.markdown(st.session_state.locale.chat_clear_note[0])
+    st.sidebar.markdown("Please report any issues or suggestions to tqye2006@gmail.com")
 
     #st.button(st.session_state.locale.new_reg_btn[0], on_click=New_User)
     
