@@ -37,6 +37,8 @@ HF_REPO = "mistralai"
 HF_LLM_ID = "Mixtral-8x7B-Instruct-v0.1"
 MODEL_ID = HF_REPO + "/" + HF_LLM_ID
 
+HF_LLM_NAME = "Mixtral-8x7B-Instruct"   # a short name for displaying in UI
+
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HF_API_Token"]
 # Or using the following format
 #os.environ["HUGGINGFACEHUB_API_TOKEN"] = "hf_xxxxxxxxxxxxxxxxxxxxxx"
@@ -283,20 +285,10 @@ def local_css(file_name):
 @st.cache_resource()
 def Main_Title(text: str) -> None:
 
-    #smt_logo_path = r"./images/SHS_Logo.png"
-    #image = Image.open(smt_logo_path)
-    #width, height =183, 50
-    #resized_img = image.resize((width, height))  # x, y
-    #with st.columns(3)[2]:
-    #     st.image(resized_img)
-
-    #st.image(resized_img)
-
     st.markdown(f'<p style="background-color:#ffffff;color:#049ca4;font-weight:bold;font-size:24px;border-radius:2%;">{text}</p>', unsafe_allow_html=True)
      ##ec6c1d
 
     sys.path.append(r'C:/Users/yetid8/AppData/Local/Programs/Python/Python310')
-
 
 @st.cache_data(show_spinner=False)
 def save_log(query, res, total_tokens):
@@ -377,48 +369,6 @@ def Login() -> str:
 
     return name, authentication_status, username
 
-#def Reset_Password():
-##NOT WORKING YET!
-#    if st.session_state.authentication_status:
-#        with open('./config.yaml') as file:
-#            config = yaml.load(file, Loader=SafeLoader)
-
-#        random_key = randomword(10)
-#        authenticator = stauth.Authenticate(
-#            config['credentials'],
-#            config['cookie']['name'],
-#            random_key,
-#            config['cookie']['expiry_days'],
-#            config['preauthorized']
-#        )
-
-#        try:
-#            if authenticator.reset_password(username, 'Reset password'):
-#                st.success('Password modified successfully')
-#                yaml.dump(config, file, default_flow_style=False)
-#        except Exception as e:
-#            st.error(e)
-
-#def New_User():
-##NOT WORKING YET!
-#    with open('./config.yaml') as file:
-#        config = yaml.load(file, Loader=SafeLoader)
-
-#    random_key = randomword(10)
-#    authenticator = stauth.Authenticate(
-#        config['credentials'],
-#        config['cookie']['name'],
-#        random_key,
-#        config['cookie']['expiry_days'],
-#        config['preauthorized']
-#    )
-
-#    try:
-#        if authenticator.register_user('Register user', preauthorization=False):
-#            yaml.dump(config, file, default_flow_style=False)
-#            st.success('User registered successfully')
-#    except Exception as e:
-#        st.error(e)
 
 @st.cache_data(experimental_allow_widgets=True) 
 def Get_Sys_Message():
@@ -516,9 +466,9 @@ def LLM_Completion(chain, inputs):
 ##############################################
 def main(argv):
 
-    Main_Title(st.session_state.locale.title[0] + " (v0.0.0)")
+    Main_Title(st.session_state.locale.title[0] + " (v0.0.1)")
 
-    st.session_state.info_placeholder = st.expander("Interface to LLM (Mixtral-8x7B-Instruct)")
+    st.session_state.info_placeholder = st.expander(f"Interface to LLM ({HF_LLM_NAME})")
     st.session_state.role_placeholder = st.empty()        # showing system role selected
 
     app_info = "This application is hosted locally, however the AI model is centrally hosted by Hugging Face."
@@ -534,8 +484,6 @@ def main(argv):
 
     with tab_context:
         set_context_list = list(set_context_all.keys())
-        #print(f"set_context_list: {set_context_list}")
-        #print(st.session_state["context_select" + current_user + "value"])
         context_select_index = set_context_list.index(
             st.session_state["context_select" + current_user + "value"]
         )
@@ -598,9 +546,6 @@ def main(argv):
 if __name__ == "__main__":
 
     # Initiaiise session_state elements
-#    if "user" not in st.session_state:
-#        st.session_state.user = os.getlogin()
-
     if "locale" not in st.session_state:
         st.session_state['locale'] = en
 
@@ -638,8 +583,6 @@ if __name__ == "__main__":
     )
 
     local_css("style.css")
-    #smt_logo_path = r"./images/SiemensHealthineersLogo.png"
-    #add_logo(logo_path=smt_logo_path, width=220, height=60)
 
     st.sidebar.button(st.session_state.locale.chat_clear_btn[0], on_click=Clear_Chat)
     st.sidebar.markdown(st.session_state.locale.chat_clear_note[0])
