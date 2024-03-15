@@ -3,7 +3,7 @@
 #
 # History
 # When      | Who            | What
-# 21/04/2023| Tian-Qing Ye   | Created
+# 15/03/2024| Tian-Qing Ye   | Created
 ##################################################################
 import streamlit as st
 from langchain_community.llms import HuggingFaceHub
@@ -204,7 +204,7 @@ MAX_MESSAGES = 20
 current_user = "**new_chat**"
 
 if "user" not in st.session_state:
-    st.session_state.user = os.getlogin()
+    st.session_state.user = ""
 
 if "locale" not in st.session_state:
     st.session_state['locale'] = en
@@ -482,7 +482,7 @@ def Show_Plot(plot_placeholder):
 def Create_LLM():
     llm_hf = HuggingFaceHub(
         repo_id=MODEL_ID, 
-        model_kwargs={"temperature": 0.4, "max_new_tokens": 4096, "return_full_text": True, "repetition_penalty" : 1.2}
+        model_kwargs={"temperature": 0.7, "max_new_tokens": 4096, "return_full_text": True, "repetition_penalty" : 1.2}
     )
 
     return llm_hf
@@ -521,7 +521,7 @@ def main(argv):
     st.session_state.info_placeholder = st.expander("Interface to LLM")
     st.session_state.role_placeholder = st.empty()        # showing system role selected
 
-    app_info = "This application is hosted by SMT, however the AI model is centrally hosted by Hugging Face."
+    app_info = "This application is hosted locally, however the AI model is centrally hosted by Hugging Face."
     st.session_state.info_placeholder.write(app_info)
 
     st.session_state.role_placeholder = st.info("Sys Role: **" + st.session_state["context_select" + current_user + "value"] + "**")
@@ -564,11 +564,6 @@ def main(argv):
         Show_Messages(msg_placeholder)
         st.session_state.gtts_placeholder = st.empty()
 
-        #chatinput = multimodal_chatinput()
-        #if chatinput:
-        #    print(chatinput)
-        #    uploaded_images = chatinput["images"] ##list of base64 encodings of uploaded images
-        #    user_input = chatinput["text"] ##submitted text
         input_placeholder = st.empty()
         with input_placeholder.form(key="my_form", clear_on_submit = True):
             user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=2000)
@@ -595,7 +590,7 @@ def main(argv):
                     if len(st.session_state.code_section[0]) > 10:
                         Show_Plot(plot_placeholder)
 
-                #Show_Audio_Player(answer)
+                Show_Audio_Player(generated_text)
 
                 save_log(prompt, generated_text, st.session_state.total_tokens)
 
@@ -603,8 +598,8 @@ def main(argv):
 if __name__ == "__main__":
 
     # Initiaiise session_state elements
-    if "user" not in st.session_state:
-        st.session_state.user = os.getlogin()
+#    if "user" not in st.session_state:
+#        st.session_state.user = os.getlogin()
 
     if "locale" not in st.session_state:
         st.session_state['locale'] = en
