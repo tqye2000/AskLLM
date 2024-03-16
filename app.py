@@ -433,7 +433,7 @@ def Show_Plot(plot_placeholder):
 def Create_LLM():
     llm_hf = HuggingFaceHub(
         repo_id=MODEL_ID, 
-        model_kwargs={"temperature": 0.7, "max_new_tokens": 4096, "return_full_text": True, "repetition_penalty" : 1.2}
+        model_kwargs={"temperature": 0.7, "max_new_tokens": 4096, "return_full_text": False, "repetition_penalty" : 1.2}
     )
 
     return llm_hf
