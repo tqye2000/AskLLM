@@ -32,9 +32,10 @@ import re
 import libs
 #from st_utils import *
 
-#MODEL_ID = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 HF_REPO = "mistralai"
 HF_LLM_ID = "Mixtral-8x7B-Instruct-v0.1"
+#HF_LLM_ID = "Mistral-7B-Instruct-v0.2"
+
 MODEL_ID = HF_REPO + "/" + HF_LLM_ID
 
 HF_LLM_NAME = "Mixtral-8x7B-Instruct"   # a short name for displaying in UI
@@ -405,13 +406,13 @@ def Show_Messages(msg_placeholder):
     messages_str = []
     for _ in st.session_state["messages"][1:]:
         if(_['role'] == 'user'):
-            role = 'You'
+            role = '**You**'
         elif (_['role'] == 'assistant'):
-            role = 'Bot'
+            role = '**Bot**'
         else:
             role = _['role']
 
-        messages_str.append(f"**{role}**: {_['content']}")     
+        messages_str.append(f"{role}: {_['content']}")     
     
     msg = str("\n\n".join(messages_str))
     msg_placeholder.markdown(msg, unsafe_allow_html=True)
@@ -449,11 +450,15 @@ def Create_Model_Chain():
 def LLM_Completion(chain, inputs):
     '''
     '''
+
     if(len(inputs) > MAX_MESSAGES+1):
         inputs.pop(1)
         inputs.pop(1)
 
-    print(f"Inputs for Model: {inputs}")
+    #print("=============== FOR DEBUG ==============================")
+    #print(f"Inputs for Model: {inputs}")
+    #print("================ END DEBUG =============================")
+
     response1 = chain.predict(input=inputs)
 
     print(f"Outputs from the Model: {response1}")
