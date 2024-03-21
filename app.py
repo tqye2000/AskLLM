@@ -4,6 +4,7 @@
 # History
 # When      | Who            | What
 # 15/03/2024| Tian-Qing Ye   | Created
+# 21/03/2024| Tian-Qing Ye   | Further developed
 ##################################################################
 import streamlit as st
 from langchain_community.llms import HuggingFaceHub
@@ -27,7 +28,7 @@ from typing import List
 import random, string
 import json
 from base64 import b64decode
-import re
+from random import randint
 
 import libs
 #from st_utils import *
@@ -35,6 +36,9 @@ import libs
 HF_REPO = "mistralai"
 HF_LLM_ID = "Mixtral-8x7B-Instruct-v0.1"
 #HF_LLM_ID = "Mistral-7B-Instruct-v0.2"
+
+#HF_REPO = "hfl"
+#HF_LLM_ID = "chinese-mixtral-instruct"
 
 MODEL_ID = HF_REPO + "/" + HF_LLM_ID
 
@@ -241,12 +245,6 @@ def randomword(length):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(length))
 
-def extract_code(text):
-    code_regex = r"```(.*?)```"
-    code_matches = re.findall(code_regex, text, re.DOTALL)
-    print (f"Code extracted: {code_matches}")
-
-    return code_matches
 
 def callback_fun(arg):
     try:
@@ -386,12 +384,17 @@ def Get_Sys_Message():
 def Clear_Chat() -> None:
     st.session_state.generated = []
     st.session_state.past = []
+    st.session_state.messages = []
     st.session_state.messages = BASE_PROMPT
     st.session_state.user_text = ""
+    st.session_state.loaded_content = ""
     #st.session_state.locale = zw
 
     st.session_state["context_select" + current_user + "value"] = 'General Assistant'
     st.session_state["context_input" + current_user + "value"] = ""
+
+    st.session_state.key += "1"     # HACK use the following two lines to reset update the file_uploader key
+    st.rerun()
 
 def Show_Images(placeholder, desc, img_url):
 
@@ -412,7 +415,14 @@ def Show_Messages(msg_placeholder):
         else:
             role = _['role']
 
-        messages_str.append(f"{role}: {_['content']}")     
+        text = f"{_['content']}"
+        if role == '**You**':
+            print("Orignal text:", text)
+            text_s = libs.remove_contexts(text)
+            print("New text:", text_s)
+            messages_str.append(f"{role}: {text_s}")
+        else:
+            messages_str.append(f"{role}: {text}")
     
     msg = str("\n\n".join(messages_str))
     msg_placeholder.markdown(msg, unsafe_allow_html=True)
@@ -517,20 +527,33 @@ def main(argv):
         Show_Messages(msg_placeholder)
         st.session_state.gtts_placeholder = st.empty()
 
+        uploaded_file_placehoilder = st.empty()
+        with uploaded_file_placehoilder:
+            uploaded_file = st.file_uploader("Load your file", type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False, label_visibility="collapsed")
+            if uploaded_file is not None:
+                bytes_data = uploaded_file.read()
+                st.session_state.loaded_content = libs.GetContexts(uploaded_file)
+                #print("====================================================================")
+                #print(st.session_state.loaded_content)
+                #print("====================================================================")
+
         input_placeholder = st.empty()
         with input_placeholder.form(key="my_form", clear_on_submit = True):
-            user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=2000)
+            user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=4000)
             send_button = st.form_submit_button(label=st.session_state.locale.chat_run_btn[0])
 
         if send_button :
             print(f"{st.session_state.user}: {user_input}")
             if(user_input.strip() != ''):
-                prompt = user_input.strip()
+                if st.session_state.loaded_content.strip() != "":
+                    prompt = f"<CONTEXT>{st.session_state.loaded_content.strip()}</CONTEXT>" + "\n\n" + user_input.strip()
+                else:
+                    prompt = user_input.strip()
                 st.session_state.messages += [{"role": "user", "content": prompt}]
                 
                 with st.spinner('Wait ...'):
                     st.session_state.model_response = LLM_Completion(chain, st.session_state["messages"])
-                    st.session_state.code_section = extract_code(st.session_state.model_response)
+                    st.session_state.code_section = libs.extract_code(st.session_state.model_response)
                 generated_text = st.session_state.model_response + '\n'
                 st.session_state.messages += [{"role": "assistant", "content": generated_text}]
                 #st.session_state["messages"] += [generated_text]
@@ -554,6 +577,9 @@ if __name__ == "__main__":
     if "locale" not in st.session_state:
         st.session_state['locale'] = en
 
+    if "loaded_content" not in st.session_state:
+        st.session_state.loaded_content = ""
+
     if "message_count" not in st.session_state:
         st.session_state.message_count = 0
 
@@ -568,6 +594,9 @@ if __name__ == "__main__":
 
     if 'total_tokens' not in st.session_state:
         st.session_state.total_tokens = 0
+
+    if 'key' not in st.session_state:
+        st.session_state.key = str(randint(1000, 10000000))    
 
     BASE_PROMPT = [{"role": "system", "content": "You are a helpful assistant who can answer or handle all my queries!"}]
     if "messages" not in st.session_state:

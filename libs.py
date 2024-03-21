@@ -1,3 +1,10 @@
+from langchain_community.document_loaders import UnstructuredFileLoader
+from langchain_community.document_loaders import UnstructuredWordDocumentLoader
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import UnstructuredPowerPointLoader
+import os
+import re
+
 set_sys_context = {
     'Chatty Partner':
         "You are an endearing conversational companion",
@@ -47,3 +54,137 @@ set_sys_context = {
         "我希望你用更优美优雅的高级英语单词和句子来替换我使用的简单单词和句子。保持相同的意思，但使它们更文艺。我要你只回复更正、改进，不要写任何解释。",
 
 }
+
+#----------------------------------- 
+def get_docx_data(filepath:str) -> str:
+    '''
+    File types: docx
+    '''
+    loader = UnstructuredWordDocumentLoader(filepath)
+
+    data = loader.load()
+    doc = data[0]
+
+    return doc.page_content
+
+def get_ppt_data(filepath:str) -> str:
+    '''
+    File types: powerpoint document
+    '''
+    loader = UnstructuredPowerPointLoader(filepath)
+    docs = loader.load()
+    doc = docs[0]
+
+    return doc.page_content
+
+def get_pdf_data(filepath:str) -> str:
+    '''
+    File types: pdf
+    '''
+    loader = PyPDFLoader(filepath)
+    docs = loader.load()
+    doc = docs[0]
+
+    return doc.page_content
+
+def get_unstructured_data(filepath) -> str:
+    '''
+    File types: text, html
+    '''
+    loader = UnstructuredFileLoader(filepath)
+    docs = loader.load()
+    doc = docs[0]
+
+    return doc.page_content
+
+def text_preprocessing(filepath:str) -> str:
+    '''
+    Reading plain text file
+    '''
+    text =""
+    with open(filepath, encoding="utf-8") as f:
+        text = f.read()
+
+    return text
+
+def remove_contexts(input_string):
+    # Use regular expression to find and replace content between <S> and </S>
+    cleaned_string = re.sub(r"<CONTEXT>.*?</CONTEXT>", "{...}", input_string, flags=re.DOTALL)
+    return cleaned_string
+
+def extract_code(text):
+    code_regex = r"```(.*?)```"
+    code_matches = re.findall(code_regex, text, re.DOTALL)
+    print (f"Code extracted: {code_matches}")
+
+    return code_matches
+
+def Read_From_File(filepath:str) -> dict:
+    '''
+    This function reads file of types [.docx, .pdf, .pptx] or any plain text file, and returns the content of the file.
+
+    Parameters
+    ----------
+    filepath : str
+        The full file path to the file to be read 
+
+    Returns
+    -------
+    ret : dict
+        a dictionary containing the error code and the content of the file
+    '''
+    ret = {}
+    ret['Error'] = 0
+
+    if os.path.exists(filepath):
+        try:
+            if filepath.split(".")[-1] in ['docx', 'DOCX']:
+                ret['Conent'] = get_docx_data(filepath)
+                ret['Error'] = 0
+            elif filepath.split(".")[-1] in ['pdf', 'PDF']:
+                ret['Conent'] = get_pdf_data(filepath)
+                ret['Error'] = 0
+            elif filepath.split(".")[-1] in ['pptx', 'PPTX']:
+                ret['Conent'] = get_ppt_data(filepath)
+                ret['Error'] = 0
+            else:
+                ret['Conent'] = text_preprocessing(filepath)
+                ret['Error'] = 0
+        except Exception as ex:
+            ret['Error'] = f"Failed to read file {filepath}: {ex}"
+    else:
+        ret['Error'] = f"{filepath} does not exist."
+
+    return ret
+
+from tempfile import NamedTemporaryFile
+
+def GetContexts(uploaded_file):
+
+    Content = ""
+    error = 0
+    filepath = uploaded_file.name
+    try:
+        if filepath.split(".")[-1] in ['docx', 'DOCX']:
+            with NamedTemporaryFile(suffix="docx", delete=False) as temp:
+                temp.write(uploaded_file.getbuffer())
+                Content = get_docx_data(temp.name)
+        elif filepath.split(".")[-1] in ['pdf', 'PDF']:
+            with NamedTemporaryFile(suffix="pdf", delete=False) as temp:
+                temp.write(uploaded_file.getbuffer())
+                Content = get_pdf_data(temp.name)
+        elif filepath.split(".")[-1] in ['pptx', 'PPTX']:
+            with NamedTemporaryFile(suffix="pptx", delete=False) as temp:
+                temp.write(uploaded_file.getbuffer())
+                Content = get_ppt_data(temp.name)
+        else:
+            with NamedTemporaryFile(suffix="txt", delete=False) as temp:
+                temp.write(uploaded_file.getbuffer())
+                Content = text_preprocessing(temp.name)
+    except Exception as ex:
+        print(f"Loading file content failed: {ex}")
+        Content = ""
+        error = 1
+
+    return Content
+
