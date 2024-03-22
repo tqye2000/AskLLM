@@ -163,28 +163,39 @@ def GetContexts(uploaded_file):
 
     Content = ""
     error = 0
+    tempFile = ""
     filepath = uploaded_file.name
     try:
         if filepath.split(".")[-1] in ['docx', 'DOCX']:
             with NamedTemporaryFile(suffix="docx", delete=False) as temp:
                 temp.write(uploaded_file.getbuffer())
+                tempFile = temp.name
                 Content = get_docx_data(temp.name)
         elif filepath.split(".")[-1] in ['pdf', 'PDF']:
             with NamedTemporaryFile(suffix="pdf", delete=False) as temp:
                 temp.write(uploaded_file.getbuffer())
+                tempFile = temp.name
                 Content = get_pdf_data(temp.name)
         elif filepath.split(".")[-1] in ['pptx', 'PPTX']:
             with NamedTemporaryFile(suffix="pptx", delete=False) as temp:
                 temp.write(uploaded_file.getbuffer())
+                tempFile = temp.name
                 Content = get_ppt_data(temp.name)
         else:
             with NamedTemporaryFile(suffix="txt", delete=False) as temp:
                 temp.write(uploaded_file.getbuffer())
+                tempFile = temp.name
                 Content = text_preprocessing(temp.name)
     except Exception as ex:
         print(f"Loading file content failed: {ex}")
         Content = ""
         error = 1
+
+    if os.path.exists(tempFile):
+        try:
+            os.remove(tempFile)
+        except Exception as ex:
+            pass
 
     return Content
 
