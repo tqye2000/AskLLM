@@ -527,18 +527,20 @@ def main(argv):
         Show_Messages(msg_placeholder)
         st.session_state.gtts_placeholder = st.empty()
 
-        uploaded_file_placehoilder = st.empty()
-        with uploaded_file_placehoilder:
+        st.session_state.new_topic_button = st.button("New Topic", key="newTopic", on_click=Clear_Chat)
+        st.session_state.uploaded_file_placehoilder = st.empty()
+        st.session_state.input_placeholder = st.empty()
+
+        with st.session_state.uploaded_file_placehoilder:
             uploaded_file = st.file_uploader("Load your file", type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False, label_visibility="collapsed")
             if uploaded_file is not None:
-                bytes_data = uploaded_file.read()
+                #bytes_data = uploaded_file.read()
                 st.session_state.loaded_content = libs.GetContexts(uploaded_file)
                 #print("====================================================================")
                 #print(st.session_state.loaded_content)
                 #print("====================================================================")
 
-        input_placeholder = st.empty()
-        with input_placeholder.form(key="my_form", clear_on_submit = True):
+        with st.session_state.input_placeholder.form(key="my_form", clear_on_submit = True):
             user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=4000)
             send_button = st.form_submit_button(label=st.session_state.locale.chat_run_btn[0])
 
