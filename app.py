@@ -7,6 +7,7 @@
 # 21/03/2024| Tian-Qing Ye   | Further developed
 ##################################################################
 import streamlit as st
+from streamlit_javascript import st_javascript
 from langchain_community.llms import HuggingFaceHub
 from langchain.chains import ConversationChain
 
@@ -280,14 +281,31 @@ def local_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     f.close()
 
+@st.cache_data()
+def get_client_ip():
+    '''
+    workaround solution, via 'https://api.ipify.org?format=json' for get client ip
+    
+    example:
+    ip_address = client_ip()  # now you have it in the host...
+    st.write(ip_address)  # so you can log it, etc.    
+    '''
+    url = 'https://api.ipify.org?format=json'
 
-@st.cache_resource()
-def Main_Title(text: str) -> None:
+    script = (f'await fetch("{url}").then('
+                'function(response) {'
+                    'return response.json();'
+                '})')
 
-    st.markdown(f'<p style="background-color:#ffffff;color:#049ca4;font-weight:bold;font-size:24px;border-radius:2%;">{text}</p>', unsafe_allow_html=True)
-     ##ec6c1d
+    try:
+        result = st_javascript(script)
 
-    sys.path.append(r'C:/Users/yetid8/AppData/Local/Programs/Python/Python310')
+        if isinstance(result, dict) and 'ip' in result:
+            return result['ip']
+
+    except:
+        pass
+
 
 @st.cache_data(show_spinner=False)
 def save_log(query, res, total_tokens):
@@ -302,13 +320,20 @@ def save_log(query, res, total_tokens):
     f.write(f'[You]: {query}\n')
     f.write(f'[{HF_LLM_ID}]: {res}\n')
     f.write(f'[Tokens]: {total_tokens}\n')
-#    f.write(f"The remote ip is {get_remote_ip()}")
+    f.write(f"User ip: {get_client_ip()}")
     f.write(100 * '-' + '\n\n')        
     f.close()
 
     print(f'[{date_time}]: {st.session_state.user}\n')
     print(res+'\n')
 
+@st.cache_resource()
+def Main_Title(text: str) -> None:
+
+    st.markdown(f'<p style="background-color:#ffffff;color:#049ca4;font-weight:bold;font-size:24px;border-radius:2%;">{text}</p>', unsafe_allow_html=True)
+     ##ec6c1d
+
+    sys.path.append(r'C:/Users/yetid8/AppData/Local/Programs/Python/Python310')
 
 def Show_Audio_Player(ai_content: str) -> None:
     sound_file = BytesIO()

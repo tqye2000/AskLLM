@@ -1,6 +1,8 @@
+streamlit_javascript
 transformers
 huggingface_hub
 langchain
 langchain_community
 langdetect
 gtts
+streamlit_javascript
