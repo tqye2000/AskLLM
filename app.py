@@ -55,18 +55,22 @@ class Locale:
     ai_role_options: List[str]
     ai_role_prefix: str
     ai_role_postfix: str
+    role_tab_label: str
     title: str
     language: str
     lang_code: str
+    chat_tab_label: str
     chat_messages: str
     chat_placeholder: str
     chat_run_btn: str
     chat_clear_btn: str
     chat_clear_note: str
+    file_upload_label: str
     login_prompt: str
     logout_prompt: str
     username_prompt: str
     password_prompt: str
+    support_message: str
     select_placeholder1: str
     select_placeholder2: str
     stt_placeholder: str
@@ -78,18 +82,22 @@ class Locale:
                 ai_role_options, 
                 ai_role_prefix,
                 ai_role_postfix,
+                role_tab_label,
                 title,
                 language,
                 lang_code,
+                chat_tab_label,
                 chat_messages,
                 chat_placeholder,
                 chat_run_btn,
                 chat_clear_btn,
                 chat_clear_note,
+                file_upload_label,
                 login_prompt,
                 logout_prompt,
                 username_prompt,
                 password_prompt,
+                support_message,
                 select_placeholder1,
                 select_placeholder2,
                 stt_placeholder,
@@ -100,18 +108,22 @@ class Locale:
         self.ai_role_options = ai_role_options, 
         self.ai_role_prefix= ai_role_prefix,
         self.ai_role_postfix= ai_role_postfix,
+        self.role_tab_label = role_tab_label,
         self.title= title,
         self.language= language,
         self.lang_code= lang_code,
+        self.chat_tab_label= chat_tab_label,
         self.chat_placeholder= chat_placeholder,
         self.chat_messages = chat_messages,
         self.chat_run_btn= chat_run_btn,
         self.chat_clear_btn= chat_clear_btn,
         self.chat_clear_note= chat_clear_note,
+        self.file_upload_label = file_upload_label,
         self.login_prompt= login_prompt,
         self.logout_prompt= logout_prompt,
         self.username_prompt= username_prompt,
         self.password_prompt= password_prompt,
+        self.support_message = support_message,
         self.select_placeholder1= select_placeholder1,
         self.select_placeholder2= select_placeholder2,
         self.stt_placeholder = stt_placeholder,
@@ -138,18 +150,22 @@ en = Locale(
     ai_role_options=AI_ROLE_OPTIONS_EN,
     ai_role_prefix="You are an assistant",
     ai_role_postfix="Answer as concisely as possible.",
+    role_tab_label="🤖 Sys Role",
     title="Ask LLM",
     language="English",
     lang_code='en',
+    chat_tab_label="💬 Chat",
     chat_placeholder="Your Request:",
     chat_messages="Messages:",
     chat_run_btn="Submit",
     chat_clear_btn="New Topic",
     chat_clear_note="Note: \nThe information generated from each dialogue will be transferred to the AI model as temporary memory, with a limit of ten records being retained. If the upcoming topic does not relate to the previous conversation, please select the 'New Topic' button. This ensures that the new topic remains unaffected by any prior content!",
+    file_upload_label="Please upload a file",
     login_prompt="Login",
     logout_prompt="Logout",
     username_prompt="Username/password is incorrect",
     password_prompt="Please enter your username and password",
+    support_message="Please report any issues or suggestions to tqye2006@gmail.com",
     select_placeholder1="Select Model",
     select_placeholder2="Select Role",
     stt_placeholder="Play Audio",
@@ -162,18 +178,22 @@ zw = Locale(
     ai_role_options=AI_ROLE_OPTIONS_ZW,
     ai_role_prefix="You are an assistant",
     ai_role_postfix="Answer as concisely as possible.",
+    role_tab_label="🤖 AI角色",
     title="Ask LLM",
     language="中文·",
     lang_code='zh-CN',
+    chat_tab_label="💬 会话",
     chat_placeholder="请输入你的问题或提示:",
     chat_messages="聊天内容:",
     chat_run_btn="提交",
     chat_clear_btn="新话题",
     chat_clear_note="注意：\n每条对话产生的信息将作为临时记忆输入给AI模型，并保持至多十条记录。若接下来的话题与之前的不相关，请点击“新话题”按钮，以确保新话题不会受之前内容的影响，同时也有助于节省字符传输量。谢谢！",
+    file_upload_label="请上传一个文件",
     login_prompt="登陆：",
     logout_prompt="退出",
     username_prompt="用户名/密码错误",
     password_prompt="请输入用户名和密码",
+    support_message="如遇什么问题或有什么建议，请电 tqye2006@gmail.com",
     select_placeholder1="选择AI模型",
     select_placeholder2="选择AI的角色",
     stt_placeholder="播放",
@@ -214,8 +234,6 @@ current_user = "**new_chat**"
 if "user" not in st.session_state:
     st.session_state.user = ""
 
-if "locale" not in st.session_state:
-    st.session_state['locale'] = en
 
 if "message_count" not in st.session_state:
     st.session_state.message_count = 0
@@ -228,12 +246,6 @@ if "model_response" not in st.session_state:
 
 if "code_section" not in st.session_state:
     st.session_state.code_section = ""
-
-if "generated" not in st.session_state:
-    st.session_state.generated = []
-
-if "past" not in st.session_state:
-    st.session_state.past = []
 
 if 'total_tokens' not in st.session_state:
     st.session_state["total_tokens"] = 0
@@ -281,7 +293,6 @@ def local_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     f.close()
 
-@st.cache_data()
 def get_client_ip():
     '''
     workaround solution, via 'https://api.ipify.org?format=json' for get client ip
@@ -320,7 +331,7 @@ def save_log(query, res, total_tokens):
     f.write(f'[You]: {query}\n')
     f.write(f'[{HF_LLM_ID}]: {res}\n')
     f.write(f'[Tokens]: {total_tokens}\n')
-    f.write(f"User ip: {get_client_ip()}")
+    f.write(f"User ip: {st.session_state.user_ip}")
     f.write(100 * '-' + '\n\n')        
     f.close()
 
@@ -331,9 +342,6 @@ def save_log(query, res, total_tokens):
 def Main_Title(text: str) -> None:
 
     st.markdown(f'<p style="background-color:#ffffff;color:#049ca4;font-weight:bold;font-size:24px;border-radius:2%;">{text}</p>', unsafe_allow_html=True)
-     ##ec6c1d
-
-    sys.path.append(r'C:/Users/yetid8/AppData/Local/Programs/Python/Python310')
 
 def Show_Audio_Player(ai_content: str) -> None:
     sound_file = BytesIO()
@@ -394,20 +402,7 @@ def Login() -> str:
     return name, authentication_status, username
 
 
-@st.cache_data(experimental_allow_widgets=True) 
-def Get_Sys_Message():
-    sys_role = st.sidebar.selectbox(
-        'What role should GPT play?',
-        ('Talent Assistant',))
-
-    #st.write('You selected:', option)
-    if(sys_role == 'Talent Assistant'):
-        sys_msg = "You are a helpful assistant that can answer or handle all my queries!"
-
-    return sys_msg
-
 def Clear_Chat() -> None:
-    st.session_state.generated = []
     st.session_state.past = []
     st.session_state.messages = []
     st.session_state.messages = BASE_PROMPT
@@ -514,13 +509,13 @@ def main(argv):
     app_info = "This application is hosted locally, however the AI model is centrally hosted by Hugging Face."
     st.session_state.info_placeholder.write(app_info)
 
-    st.session_state.role_placeholder = st.info("Sys Role: **" + st.session_state["context_select" + current_user + "value"] + "**")
+    st.session_state.role_placeholder = st.info(st.session_state.locale.role_tab_label[0] + ": **" + st.session_state["context_select" + current_user + "value"] + "**")
 
     # Build Model Chain
     chain = Create_Model_Chain()
 
     ## ----- Start --------
-    tab_chat, tab_context = st.tabs(["💬 Chat", "🤖 Sys Role"])
+    tab_chat, tab_context = st.tabs([st.session_state.locale.chat_tab_label[0], st.session_state.locale.role_tab_label[0]])
 
     with tab_context:
         set_context_list = list(set_context_all.keys())
@@ -552,12 +547,12 @@ def main(argv):
         Show_Messages(msg_placeholder)
         st.session_state.gtts_placeholder = st.empty()
 
-        st.session_state.new_topic_button = st.button("New Topic", key="newTopic", on_click=Clear_Chat)
+        st.session_state.new_topic_button = st.button(label=st.session_state.locale.chat_clear_btn[0], key="newTopic", on_click=Clear_Chat)
         st.session_state.uploaded_file_placehoilder = st.empty()
         st.session_state.input_placeholder = st.empty()
 
         with st.session_state.uploaded_file_placehoilder:
-            uploaded_file = st.file_uploader("Load your file", type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False, label_visibility="collapsed")
+            uploaded_file = st.file_uploader(label=st.session_state.locale.file_upload_label[0], type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False, label_visibility="collapsed")
             if uploaded_file is not None:
                 #bytes_data = uploaded_file.read()
                 st.session_state.loaded_content = libs.GetContexts(uploaded_file)
@@ -566,7 +561,7 @@ def main(argv):
                 #print("====================================================================")
 
         with st.session_state.input_placeholder.form(key="my_form", clear_on_submit = True):
-            user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=4000)
+            user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=6000)
             send_button = st.form_submit_button(label=st.session_state.locale.chat_run_btn[0])
 
         if send_button :
@@ -602,7 +597,10 @@ if __name__ == "__main__":
 
     # Initiaiise session_state elements
     if "locale" not in st.session_state:
-        st.session_state['locale'] = en
+        st.session_state.locale = en
+
+    if "user_ip" not in st.session_state:
+        st.session_state.user_ip = get_client_ip()
 
     if "loaded_content" not in st.session_state:
         st.session_state.loaded_content = ""
@@ -612,12 +610,6 @@ if __name__ == "__main__":
 
     if "user_text" not in st.session_state:
         st.session_state.user_text = ""
-
-    if "generated" not in st.session_state:
-        st.session_state.generated = []
-
-    if "past" not in st.session_state:
-        st.session_state.past = []
 
     if 'total_tokens' not in st.session_state:
         st.session_state.total_tokens = 0
@@ -647,7 +639,7 @@ if __name__ == "__main__":
 
     st.sidebar.button(st.session_state.locale.chat_clear_btn[0], on_click=Clear_Chat)
     st.sidebar.markdown(st.session_state.locale.chat_clear_note[0])
-    st.sidebar.markdown("Please report any issues or suggestions to tqye2006@gmail.com")
+    st.sidebar.markdown(st.session_state.locale.support_message[0])
 
     #st.button(st.session_state.locale.new_reg_btn[0], on_click=New_User)
     
