@@ -8,12 +8,13 @@
 ##################################################################
 import streamlit as st
 from streamlit_javascript import st_javascript
-from langchain_community.llms import HuggingFaceHub
-from langchain.chains import ConversationChain
-
 #import streamlit_authenticator as stauth
 #from streamlit.runtime.scriptrunner import get_script_run_ctx
 #from st_multimodal_chatinput import multimodal_chatinput
+from streamlit import runtime
+from streamlit.runtime.scriptrunner import get_script_run_ctx
+from langchain_community.llms import HuggingFaceHub
+from langchain.chains import ConversationChain
 
 import yaml
 from yaml.loader import SafeLoader
@@ -30,6 +31,11 @@ import random, string
 import json
 from base64 import b64decode
 from random import randint
+
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 
 import libs
 #from st_utils import *
@@ -317,6 +323,22 @@ def get_client_ip():
     except:
         pass
 
+@st.cache_data()
+def get_remote_ip() -> str:
+    """Get remote ip."""
+
+    try:
+        ctx = get_script_run_ctx()
+        if ctx is None:
+            return None
+
+        session_info = runtime.get_instance().get_client(ctx.session_id)
+        if session_info is None:
+            return None
+    except Exception as e:
+        return None
+
+    return session_info.request.remote_ip
 
 @st.cache_data(show_spinner=False)
 def save_log(query, res, total_tokens):
@@ -332,11 +354,71 @@ def save_log(query, res, total_tokens):
     f.write(f'[{HF_LLM_ID}]: {res}\n')
     f.write(f'[Tokens]: {total_tokens}\n')
     f.write(f"User ip: {st.session_state.user_ip}")
-    f.write(100 * '-' + '\n\n')        
+    f.write(100 * '-' + '\n\n') 
+
+    try:
+        if sendmail == True:
+            send_mail(query, res, total_tokens)
+    except Exception as ex:
+        f.write(f'Sending mail failed {ex}\n')
+        pass
+
     f.close()
 
     print(f'[{date_time}]: {st.session_state.user}\n')
     print(res+'\n')
+
+@st.cache_data(show_spinner=False)
+def send_mail(query, res, total_tokens):
+    '''
+    '''
+    now = datetime.now() # current date and time
+    date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+    remote_ip = get_remote_ip()
+    message = f'[{date_time}] {st.session_state.user}:({remote_ip}):\n'
+    message += f'[You]: {query}\n'
+    message += f'[Claude]: {res}\n'
+    message += f'[Tokens]: {total_tokens}\n'
+
+    # Set up the SMTP server and log into your account
+    smtp_server = "smtp.gmail.com"
+    port = 587
+    # sender_email = "your_email@gmail.com"
+    # password = "your_password"
+    sender_email = st.secrets["gmail_user"]
+    password = st.secrets["gmail_passwd"]
+
+    server = smtplib.SMTP(smtp_server, port)
+    server.starttls()
+    server.login(sender_email, password)
+
+    # Create the MIMEMultipart message object and load it with appropriate headers for From, To, and Subject fields
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = st.secrets["receive_mail"]
+    msg['Subject'] = f"Chat from {st.session_state.user}"
+
+    # Add your message body
+    body = message
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        filename, file_extension = os.path.splitext(res)
+        if file_extension == ".png":
+            # Open the image file in binary mode
+            with open(res, 'rb') as fp:
+                # Create a MIMEImage object with the image data
+                img = MIMEImage(fp.read())
+
+            # Attach the image to the MIMEMultipart object
+            msg.attach(img)
+    except Exception as e:
+        print(f"Error: {str(e)}", 0)
+
+    # Send the message using the SMTP server object
+    server.send_message(msg)
+    server.quit()
+
 
 @st.cache_resource()
 def Main_Title(text: str) -> None:
