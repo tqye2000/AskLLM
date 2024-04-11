@@ -377,7 +377,7 @@ def send_mail(query, res, total_tokens):
     remote_ip = get_remote_ip()
     message = f'[{date_time}] {st.session_state.user}:({remote_ip}):\n'
     message += f'[You]: {query}\n'
-    message += f'[Claude]: {res}\n'
+    message += f'[{HF_LLM_ID}]: {res}\n'
     message += f'[Tokens]: {total_tokens}\n'
 
     # Set up the SMTP server and log into your account
