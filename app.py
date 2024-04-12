@@ -8,9 +8,6 @@
 ##################################################################
 import streamlit as st
 from streamlit_javascript import st_javascript
-#import streamlit_authenticator as stauth
-#from streamlit.runtime.scriptrunner import get_script_run_ctx
-#from st_multimodal_chatinput import multimodal_chatinput
 from streamlit import runtime
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 from langchain_community.llms import HuggingFaceHub
@@ -18,7 +15,6 @@ from langchain.chains import ConversationChain
 
 import yaml
 from yaml.loader import SafeLoader
-from PIL import Image
 from io import BytesIO
 from gtts import gTTS, gTTSError
 
@@ -28,8 +24,6 @@ import sys
 from datetime import datetime
 from typing import List
 import random, string
-import json
-from base64 import b64decode
 from random import randint
 
 import smtplib
@@ -38,7 +32,6 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
 import libs
-#from st_utils import *
 
 HF_REPO = "mistralai"
 HF_LLM_ID = "Mixtral-8x7B-Instruct-v0.1"
@@ -498,13 +491,6 @@ def Clear_Chat() -> None:
     st.session_state.key += "1"     # HACK use the following two lines to reset update the file_uploader key
     st.rerun()
 
-def Show_Images(placeholder, desc, img_url):
-
-	# msg = f"![{desc}]({img_url})"
-	# placeholder.markdown(msg, unsafe_allow_html=True)
-
-    image = Image.open(img_url)
-    placeholder.image(image, caption=desc)
 
 def Show_Messages(msg_placeholder):
 
