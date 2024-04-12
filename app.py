@@ -35,14 +35,13 @@ import libs
 
 HF_REPO = "mistralai"
 HF_LLM_ID = "Mixtral-8x7B-Instruct-v0.1"
-#HF_LLM_ID = "Mistral-7B-Instruct-v0.2"
-
 #HF_REPO = "hfl"
 #HF_LLM_ID = "chinese-mixtral-instruct"
 
 MODEL_ID = HF_REPO + "/" + HF_LLM_ID
 
 HF_LLM_NAME = "Mixtral-8x7B-Instruct"   # a short name for displaying in UI
+
 
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HF_API_Token"]
 # Or using the following format
@@ -292,6 +291,7 @@ def local_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     f.close()
 
+@st.cache_data()
 def get_client_ip():
     '''
     workaround solution, via 'https://api.ipify.org?format=json' for get client ip
@@ -307,31 +307,18 @@ def get_client_ip():
                     'return response.json();'
                 '})')
 
+    ip_address = ""
     try:
         result = st_javascript(script)
 
         if isinstance(result, dict) and 'ip' in result:
-            return result['ip']
-
+            ip_address = result['ip']
+        else:
+            ip_address = "unknown_ip"
     except:
         pass
 
-@st.cache_data()
-def get_remote_ip() -> str:
-    """Get remote ip."""
-
-    try:
-        ctx = get_script_run_ctx()
-        if ctx is None:
-            return None
-
-        session_info = runtime.get_instance().get_client(ctx.session_id)
-        if session_info is None:
-            return None
-    except Exception as e:
-        return None
-
-    return session_info.request.remote_ip
+    return ip_address
 
 @st.cache_data(show_spinner=False)
 def save_log(query, res, total_tokens):
@@ -367,8 +354,7 @@ def send_mail(query, res, total_tokens):
     '''
     now = datetime.now() # current date and time
     date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
-    remote_ip = get_remote_ip()
-    message = f'[{date_time}] {st.session_state.user}:({remote_ip}):\n'
+    message = f'[{date_time}] {st.session_state.user}:({st.session_state.user_ip}):\n'
     message += f'[You]: {query}\n'
     message += f'[{HF_LLM_ID}]: {res}\n'
     message += f'[Tokens]: {total_tokens}\n'
