@@ -307,15 +307,18 @@ def get_client_ip():
                     'return response.json();'
                 '})')
 
+    ip_address = ""
     try:
         result = st_javascript(script)
 
         if isinstance(result, dict) and 'ip' in result:
-            return result['ip']
-
+            ip_address = result['ip']
+        else:
+            ip_address = "unknown_ip"
     except:
         pass
 
+    return ip_address
 
 @st.cache_data(show_spinner=False)
 def save_log(query, res, total_tokens):
