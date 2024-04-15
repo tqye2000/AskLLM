@@ -36,13 +36,10 @@ import libs
 
 HF_REPO = "mistralai"
 HF_LLM_ID = "Mixtral-8x7B-Instruct-v0.1"
-#HF_REPO = "hfl"
-#HF_LLM_ID = "chinese-mixtral-instruct"
 
 MODEL_ID = HF_REPO + "/" + HF_LLM_ID
 
 HF_LLM_NAME = "Mixtral-8x7B-Instruct"   # a short name for displaying in UI
-
 
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HF_API_Token"]
 HUGGINGFACEHUB_API_TOKEN = st.secrets["HF_API_Token"]
@@ -368,8 +365,6 @@ def send_mail(query, res, total_tokens):
     # Set up the SMTP server and log into your account
     smtp_server = "smtp.gmail.com"
     port = 587
-    # sender_email = "your_email@gmail.com"
-    # password = "your_password"
     sender_email = st.secrets["gmail_user"]
     password = st.secrets["gmail_passwd"]
 
@@ -520,31 +515,31 @@ def Show_Plot(plot_placeholder):
 
 
 @st.cache_data()
-def Create_LLM(model_id:str):
+def Create_LLM(model_id:str, max_new_tokens:int):
 
-    #llm_hf = HuggingFaceHub(
-    #    repo_id=model_id,
-    #    model_kwargs={"temperature": 0.7, "max_new_tokens": 4096, "return_full_text": False, "repetition_penalty" : 1.2}
-    #)
-    llm_hf = HuggingFaceEndpoint(
-        repo_id=model_id, 
-        max_new_tokens=4096,
-        temperature=0.7,
-        token=HUGGINGFACEHUB_API_TOKEN,
-    )
-
-    #llm_hf = HuggingFaceEndpoint(
-    #    repo_id=model_id, 
-    #    max_length=2048, 
-    #    temperature=0.7
-    #)
+    llm_hf = None
+    if "Mixtral" in model_id or "Chinese" in model_id:
+        llm_hf = HuggingFaceEndpoint(
+            repo_id=model_id, 
+            max_new_tokens=max_new_tokens,
+            temperature=0.7,
+            token=HUGGINGFACEHUB_API_TOKEN,
+        )
+    else:
+        llm_hf = HuggingFaceHub(
+            repo_id=model_id,
+            model_kwargs={"temperature": 0.7, 
+                          "max_new_tokens": max_new_tokens, 
+                          "return_full_text": False, 
+                          "repetition_penalty" : 1.2}
+        )
 
     return llm_hf
 
 @st.cache_data()
-def Create_Model_Chain(model_id:str):
+def Create_Model_Chain(model_id:str, max_new_tokens:int):
 
-    llm_hf = Create_LLM(model_id)
+    llm_hf = Create_LLM(model_id, max_new_tokens)
 
     chain = ConversationChain(llm=llm_hf)
 
@@ -576,26 +571,32 @@ def main(argv):
 
     Main_Title(st.session_state.locale.title[0] + " (v0.0.1)")
 
-    #version = st.selectbox("Choose LLM 请选择您想使用的AI模型", ("Mixtral-8x7B-Instruct", "GPT-4.5"))
+    #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct","Chinese-Mixtral-instruct", "Codegemma-7b-it"))
     version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct",))
     if version == "Mixtral-8x7B-Instruct":
         # Use Mixtral model
-        st.session_state.llm = HF_REPO + "/" + "Mixtral-8x7B-Instruct-v0.1"
-    elif version == "Gemma-7B":
-        # Define the repository ID for the Gemma 2b model
-        st.session_state.llm = "google/gemma-1.1-7b-it"
+        st.session_state.llm = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        st.session_state.max_new_tokens = 4096
+    elif version.startswith("Chinese-Mixtral"):
+        st.session_state.llm = "hfl/chinese-mixtral-instruct"
+        st.session_state.max_new_tokens = 1024
+    elif version.startswith("Codegemma"):
+        st.session_state.llm = "google/codegemma-7b-it"
+        st.session_state.max_new_tokens = 1024
+    #elif version.startswith("GPT-4"):
+    #    # USe GPT-4.5 model
+    #    st.session_state.llm = "gpt-4"
+    #    st.session_state.max_new_tokens = 4096
     else:
-        # USe GPT-4.5 model
-        st.session_state.llm = "gpt-4"
+        # Use Mixtral model
+        st.session_state.llm = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        st.session_state.max_new_tokens = 4096
 
-#    st.session_state.info_placeholder = st.expander(f"Interface to LLM ({HF_LLM_NAME})")
-#    app_info = "This application is hosted locally, however the AI model is centrally hosted by Hugging Face."
-#    st.session_state.info_placeholder.write(app_info)
     st.session_state.role_placeholder = st.empty()        # showing system role selected
     st.session_state.role_placeholder = st.info(st.session_state.locale.role_tab_label[0] + ": **" + st.session_state["context_select" + current_user + "value"] + "**")
 
     # Build Model Chain
-    chain = Create_Model_Chain(st.session_state.llm)
+    chain = Create_Model_Chain(st.session_state.llm, st.session_state.max_new_tokens)
 
     ## ----- Start --------
     tab_chat, tab_context = st.tabs([st.session_state.locale.chat_tab_label[0], st.session_state.locale.role_tab_label[0]])
@@ -639,9 +640,6 @@ def main(argv):
             if uploaded_file is not None:
                 #bytes_data = uploaded_file.read()
                 st.session_state.loaded_content = libs.GetContexts(uploaded_file)
-                #print("====================================================================")
-                #print(st.session_state.loaded_content)
-                #print("====================================================================")
 
         with st.session_state.input_placeholder.form(key="my_form", clear_on_submit = True):
             user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=6000)
@@ -694,6 +692,9 @@ if __name__ == "__main__":
     if "user_text" not in st.session_state:
         st.session_state.user_text = ""
 
+    if 'max_new_tokens' not in st.session_state:
+        st.session_state.max_new_tokens = 1024
+
     if 'total_tokens' not in st.session_state:
         st.session_state.total_tokens = 0
 
@@ -743,9 +744,6 @@ if __name__ == "__main__":
         st.session_state["context_input" + current_user + "value"] = ""
     
     main(sys.argv)
-    # else:
-        # print(f"user: {st.session_state.user}")
-        # print(f"auth_status: {st.session_state.authentication_status}")
 
 
     
