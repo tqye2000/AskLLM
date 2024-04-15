@@ -11,6 +11,7 @@ from streamlit_javascript import st_javascript
 from streamlit import runtime
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 from langchain_community.llms import HuggingFaceHub
+from langchain_community.llms import HuggingFaceEndpoint
 from langchain.chains import ConversationChain
 
 import yaml
@@ -44,6 +45,7 @@ HF_LLM_NAME = "Mixtral-8x7B-Instruct"   # a short name for displaying in UI
 
 
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HF_API_Token"]
+HUGGINGFACEHUB_API_TOKEN = st.secrets["HF_API_Token"]
 # Or using the following format
 #os.environ["HUGGINGFACEHUB_API_TOKEN"] = "hf_xxxxxxxxxxxxxxxxxxxxxx"
 
@@ -68,6 +70,7 @@ class Locale:
     logout_prompt: str
     username_prompt: str
     password_prompt: str
+    choose_llm_prompt: str
     support_message: str
     select_placeholder1: str
     select_placeholder2: str
@@ -95,6 +98,7 @@ class Locale:
                 logout_prompt,
                 username_prompt,
                 password_prompt,
+                choose_llm_prompt,
                 support_message,
                 select_placeholder1,
                 select_placeholder2,
@@ -121,6 +125,7 @@ class Locale:
         self.logout_prompt= logout_prompt,
         self.username_prompt= username_prompt,
         self.password_prompt= password_prompt,
+        self.choose_llm_prompt = choose_llm_prompt,
         self.support_message = support_message,
         self.select_placeholder1= select_placeholder1,
         self.select_placeholder2= select_placeholder2,
@@ -163,6 +168,7 @@ en = Locale(
     logout_prompt="Logout",
     username_prompt="Username/password is incorrect",
     password_prompt="Please enter your username and password",
+    choose_llm_prompt="Choose Your LLM",
     support_message="Please report any issues or suggestions to tqye2006@gmail.com",
     select_placeholder1="Select Model",
     select_placeholder2="Select Role",
@@ -191,6 +197,7 @@ zw = Locale(
     logout_prompt="退出",
     username_prompt="用户名/密码错误",
     password_prompt="请输入用户名和密码",
+    choose_llm_prompt="请选择您想使用的AI模型",
     support_message="如遇什么问题或有什么建议，请电 tqye2006@gmail.com",
     select_placeholder1="选择AI模型",
     select_placeholder2="选择AI的角色",
@@ -291,7 +298,6 @@ def local_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     f.close()
 
-@st.cache_data()
 def get_client_ip():
     '''
     workaround solution, via 'https://api.ipify.org?format=json' for get client ip
@@ -513,19 +519,32 @@ def Show_Plot(plot_placeholder):
             plot_placeholder.warning("Unable to execute the code")
 
 
-@st.cache_resource
-def Create_LLM():
-    llm_hf = HuggingFaceHub(
-        repo_id=MODEL_ID, 
-        model_kwargs={"temperature": 0.7, "max_new_tokens": 4096, "return_full_text": False, "repetition_penalty" : 1.2}
+@st.cache_data()
+def Create_LLM(model_id:str):
+
+    #llm_hf = HuggingFaceHub(
+    #    repo_id=model_id,
+    #    model_kwargs={"temperature": 0.7, "max_new_tokens": 4096, "return_full_text": False, "repetition_penalty" : 1.2}
+    #)
+    llm_hf = HuggingFaceEndpoint(
+        repo_id=model_id, 
+        max_new_tokens=4096,
+        temperature=0.7,
+        token=HUGGINGFACEHUB_API_TOKEN,
     )
+
+    #llm_hf = HuggingFaceEndpoint(
+    #    repo_id=model_id, 
+    #    max_length=2048, 
+    #    temperature=0.7
+    #)
 
     return llm_hf
 
+@st.cache_data()
+def Create_Model_Chain(model_id:str):
 
-def Create_Model_Chain():
-
-    llm_hf = Create_LLM()
+    llm_hf = Create_LLM(model_id)
 
     chain = ConversationChain(llm=llm_hf)
 
@@ -557,16 +576,26 @@ def main(argv):
 
     Main_Title(st.session_state.locale.title[0] + " (v0.0.1)")
 
-    st.session_state.info_placeholder = st.expander(f"Interface to LLM ({HF_LLM_NAME})")
+    #version = st.selectbox("Choose LLM 请选择您想使用的AI模型", ("Mixtral-8x7B-Instruct", "GPT-4.5"))
+    version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct"))
+    if version == "Mixtral-8x7B-Instruct":
+        # Use Mixtral model
+        st.session_state.llm = HF_REPO + "/" + "Mixtral-8x7B-Instruct-v0.1"
+    elif version == "Gemma-7B":
+        # Define the repository ID for the Gemma 2b model
+        st.session_state.llm = "google/gemma-1.1-7b-it"
+    else:
+        # USe GPT-4.5 model
+        st.session_state.llm = "gpt-4"
+
+#    st.session_state.info_placeholder = st.expander(f"Interface to LLM ({HF_LLM_NAME})")
+#    app_info = "This application is hosted locally, however the AI model is centrally hosted by Hugging Face."
+#    st.session_state.info_placeholder.write(app_info)
     st.session_state.role_placeholder = st.empty()        # showing system role selected
-
-    app_info = "This application is hosted locally, however the AI model is centrally hosted by Hugging Face."
-    st.session_state.info_placeholder.write(app_info)
-
     st.session_state.role_placeholder = st.info(st.session_state.locale.role_tab_label[0] + ": **" + st.session_state["context_select" + current_user + "value"] + "**")
 
     # Build Model Chain
-    chain = Create_Model_Chain()
+    chain = Create_Model_Chain(st.session_state.llm)
 
     ## ----- Start --------
     tab_chat, tab_context = st.tabs([st.session_state.locale.chat_tab_label[0], st.session_state.locale.role_tab_label[0]])
