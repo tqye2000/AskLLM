@@ -577,7 +577,7 @@ def main(argv):
     Main_Title(st.session_state.locale.title[0] + " (v0.0.1)")
 
     #version = st.selectbox("Choose LLM 请选择您想使用的AI模型", ("Mixtral-8x7B-Instruct", "GPT-4.5"))
-    version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct"))
+    version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct",))
     if version == "Mixtral-8x7B-Instruct":
         # Use Mixtral model
         st.session_state.llm = HF_REPO + "/" + "Mixtral-8x7B-Instruct-v0.1"
