@@ -572,7 +572,7 @@ def main(argv):
         # Use Mixtral model
         st.session_state.llm = "mistralai/Mixtral-8x7B-Instruct-v0.1"
         st.session_state.max_new_tokens = 4096
-    elif version.startswith("Qwen"):
+    elif version.startswith("CodeQwen"):
         st.session_state.llm = "Qwen/CodeQwen1.5-7B-Chat"
         st.session_state.max_new_tokens = 4096
     elif version.startswith("Codegemma"):
