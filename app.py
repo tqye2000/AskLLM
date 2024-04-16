@@ -5,6 +5,7 @@
 # When      | Who            | What
 # 15/03/2024| Tian-Qing Ye   | Created
 # 21/03/2024| Tian-Qing Ye   | Further developed
+# 16/04/2024| Tian-Qing Ye   | Add support of CodeQwen1.5-7B-Chat
 ##################################################################
 import streamlit as st
 from streamlit_javascript import st_javascript
@@ -54,6 +55,7 @@ class Locale:
     ai_role_postfix: str
     role_tab_label: str
     title: str
+    choose_language: str
     language: str
     lang_code: str
     chat_tab_label: str
@@ -72,9 +74,6 @@ class Locale:
     select_placeholder1: str
     select_placeholder2: str
     stt_placeholder: str
-    radio_placeholder: str
-    radio_text1: str
-    radio_text2: str
     
     def __init__(self, 
                 ai_role_options, 
@@ -82,6 +81,7 @@ class Locale:
                 ai_role_postfix,
                 role_tab_label,
                 title,
+                choose_language,
                 language,
                 lang_code,
                 chat_tab_label,
@@ -100,15 +100,13 @@ class Locale:
                 select_placeholder1,
                 select_placeholder2,
                 stt_placeholder,
-                radio_placeholder,
-                radio_text1,
-                radio_text2,                
                 ):
         self.ai_role_options = ai_role_options, 
         self.ai_role_prefix= ai_role_prefix,
         self.ai_role_postfix= ai_role_postfix,
         self.role_tab_label = role_tab_label,
         self.title= title,
+        self.choose_language = choose_language,
         self.language= language,
         self.lang_code= lang_code,
         self.chat_tab_label= chat_tab_label,
@@ -127,9 +125,6 @@ class Locale:
         self.select_placeholder1= select_placeholder1,
         self.select_placeholder2= select_placeholder2,
         self.stt_placeholder = stt_placeholder,
-        self.radio_placeholder= radio_placeholder,
-        self.radio_text1= radio_text1,
-        self.radio_text2= radio_text2,
 
 
 AI_ROLE_OPTIONS_EN = [
@@ -152,6 +147,7 @@ en = Locale(
     ai_role_postfix="Answer as concisely as possible.",
     role_tab_label="🤖 Sys Role",
     title="Ask LLM",
+    choose_language="选择界面语言",
     language="English",
     lang_code='en',
     chat_tab_label="💬 Chat",
@@ -170,9 +166,6 @@ en = Locale(
     select_placeholder1="Select Model",
     select_placeholder2="Select Role",
     stt_placeholder="Play Audio",
-    radio_placeholder="UI Language",
-    radio_text1="English",
-    radio_text2="中文",
 )
 
 zw = Locale(
@@ -181,6 +174,7 @@ zw = Locale(
     ai_role_postfix="Answer as concisely as possible.",
     role_tab_label="🤖 AI角色",
     title="Ask LLM",
+    choose_language="Choose UI Language",
     language="中文·",
     lang_code='zh-CN',
     chat_tab_label="💬 会话",
@@ -199,9 +193,6 @@ zw = Locale(
     select_placeholder1="选择AI模型",
     select_placeholder2="选择AI的角色",
     stt_placeholder="播放",
-    radio_placeholder="选择界面语言",
-    radio_text1="English",
-    radio_text2="中文",
 )
 
 st.set_page_config(page_title="Ask LLM", 
@@ -486,7 +477,7 @@ def Show_Messages(msg_placeholder):
         if(_['role'] == 'user'):
             role = '**You**'
         elif (_['role'] == 'assistant'):
-            role = '**Bot**'
+            role = '**AI**'
         else:
             role = _['role']
 
@@ -518,7 +509,7 @@ def Show_Plot(plot_placeholder):
 def Create_LLM(model_id:str, max_new_tokens:int):
 
     llm_hf = None
-    if "Mixtral" in model_id or "Chinese" in model_id:
+    if "Mixtral" in model_id or "Qwen" in model_id:
         llm_hf = HuggingFaceEndpoint(
             repo_id=model_id, 
             max_new_tokens=max_new_tokens,
@@ -572,14 +563,18 @@ def main(argv):
     Main_Title(st.session_state.locale.title[0] + " (v0.0.1)")
 
     #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct","Chinese-Mixtral-instruct", "Codegemma-7b-it"))
-    version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct",))
+    if st.session_state.locale == en:
+        version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", "CodeQwen1.5-7B-Chat"))
+    else:
+        version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("CodeQwen1.5-7B-Chat", "Mixtral-8x7B-Instruct", ))
+    
     if version == "Mixtral-8x7B-Instruct":
         # Use Mixtral model
         st.session_state.llm = "mistralai/Mixtral-8x7B-Instruct-v0.1"
         st.session_state.max_new_tokens = 4096
-    elif version.startswith("Chinese-Mixtral"):
-        st.session_state.llm = "hfl/chinese-mixtral-instruct"
-        st.session_state.max_new_tokens = 1024
+    elif version.startswith("Qwen"):
+        st.session_state.llm = "Qwen/CodeQwen1.5-7B-Chat"
+        st.session_state.max_new_tokens = 4096
     elif version.startswith("Codegemma"):
         st.session_state.llm = "google/codegemma-7b-it"
         st.session_state.max_new_tokens = 1024
@@ -678,7 +673,7 @@ if __name__ == "__main__":
 
     # Initiaiise session_state elements
     if "locale" not in st.session_state:
-        st.session_state.locale = en
+        st.session_state.locale = zw
 
     if "user_ip" not in st.session_state:
         st.session_state.user_ip = get_client_ip()
@@ -721,6 +716,12 @@ if __name__ == "__main__":
 
     local_css("style.css")
 
+    language = st.sidebar.selectbox(st.session_state.locale.choose_language[0], ("中文", "English"))
+    if language == "English":
+        st.session_state.locale = en
+    else:
+        st.session_state.locale = zw
+        
     st.sidebar.button(st.session_state.locale.chat_clear_btn[0], on_click=Clear_Chat)
     st.sidebar.markdown(st.session_state.locale.chat_clear_note[0])
     st.sidebar.markdown(st.session_state.locale.support_message[0])
