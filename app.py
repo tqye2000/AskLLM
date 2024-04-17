@@ -564,9 +564,11 @@ def main(argv):
 
     #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct","Chinese-Mixtral-instruct", "Codegemma-7b-it"))
     if st.session_state.locale == en:
-        version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", "CodeQwen1.5-7B-Chat"))
+        #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", "CodeQwen1.5-7B-Chat"))
+        version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct",)) # CodeQwen cannot be deployed on streamlit space -(
     else:
-        version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("CodeQwen1.5-7B-Chat", "Mixtral-8x7B-Instruct", ))
+        #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("CodeQwen1.5-7B-Chat", "Mixtral-8x7B-Instruct", ))
+        version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", ))
     
     if version == "Mixtral-8x7B-Instruct":
         # Use Mixtral model
@@ -673,7 +675,7 @@ if __name__ == "__main__":
 
     # Initiaiise session_state elements
     if "locale" not in st.session_state:
-        st.session_state.locale = zw
+        st.session_state.locale = en
 
     if "user_ip" not in st.session_state:
         st.session_state.user_ip = get_client_ip()
@@ -716,7 +718,7 @@ if __name__ == "__main__":
 
     local_css("style.css")
 
-    language = st.sidebar.selectbox(st.session_state.locale.choose_language[0], ("中文", "English"))
+    language = st.sidebar.selectbox(st.session_state.locale.choose_language[0], ("English", "中文"))
     if language == "English":
         st.session_state.locale = en
     else:
