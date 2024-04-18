@@ -15,8 +15,8 @@ section[data-testid="stSidebar"] div.block-container  {
 
 [data-testid="stHorizontalBlock"] div.stButton button {
     /*background-color: lightsteelblue; */
-    width: 120px;
-    height: 50px;
+    width: 126px;
+    height: 40px;
     border-color: orangered;
     padding-top: 2px !important;
     padding-bottom: 2px !important;

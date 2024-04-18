@@ -27,6 +27,7 @@ from datetime import datetime
 from typing import List
 import random, string
 from random import randint
+import argparse
 
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -63,6 +64,7 @@ class Locale:
     chat_placeholder: str
     chat_run_btn: str
     chat_clear_btn: str
+    clear_doc_btn: str
     chat_clear_note: str
     file_upload_label: str
     login_prompt: str
@@ -89,6 +91,7 @@ class Locale:
                 chat_placeholder,
                 chat_run_btn,
                 chat_clear_btn,
+                clear_doc_btn,
                 chat_clear_note,
                 file_upload_label,
                 login_prompt,
@@ -114,6 +117,7 @@ class Locale:
         self.chat_messages = chat_messages,
         self.chat_run_btn= chat_run_btn,
         self.chat_clear_btn= chat_clear_btn,
+        self.clear_doc_btn = clear_doc_btn,
         self.chat_clear_note= chat_clear_note,
         self.file_upload_label = file_upload_label,
         self.login_prompt= login_prompt,
@@ -153,10 +157,11 @@ en = Locale(
     chat_tab_label="💬 Chat",
     chat_placeholder="Your Request:",
     chat_messages="Messages:",
-    chat_run_btn="Submit",
-    chat_clear_btn="New Topic",
+    chat_run_btn="✔️ Submit",
+    chat_clear_btn=":cl: New Topic",
+    clear_doc_btn=":x: Clear Doc",
     chat_clear_note="Note: \nThe information generated from each dialogue will be transferred to the AI model as temporary memory, with a limit of ten records being retained. If the upcoming topic does not relate to the previous conversation, please select the 'New Topic' button. This ensures that the new topic remains unaffected by any prior content!",
-    file_upload_label="Please upload a file",
+    file_upload_label="You can chat with an uploaded file (your file will never be saved anywhere)",
     login_prompt="Login",
     logout_prompt="Logout",
     username_prompt="Username/password is incorrect",
@@ -180,10 +185,11 @@ zw = Locale(
     chat_tab_label="💬 会话",
     chat_placeholder="请输入你的问题或提示:",
     chat_messages="聊天内容:",
-    chat_run_btn="提交",
-    chat_clear_btn="新话题",
+    chat_run_btn="✔️ 提交",
+    chat_clear_btn=":cl: 新话题",
+    clear_doc_btn="❌ 清空文件",
     chat_clear_note="注意：\n每条对话产生的信息将作为临时记忆输入给AI模型，并保持至多十条记录。若接下来的话题与之前的不相关，请点击“新话题”按钮，以确保新话题不会受之前内容的影响，同时也有助于节省字符传输量。谢谢！",
-    file_upload_label="请上传一个文件",
+    file_upload_label="你可以询问一个上传的文件（文件内容只在内存，不会被保留）",
     login_prompt="登陆：",
     logout_prompt="退出",
     username_prompt="用户名/密码错误",
@@ -251,6 +257,12 @@ def randomword(length):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(length))
 
+@st.cache_data()
+def parse_args(args):
+    parser = argparse.ArgumentParser('AskLLM')
+    parser.add_argument('--local', required=False)
+    parser.add_argument('--seed', help='Seed for random generator', default=37, required=False)
+    return parser.parse_args(args)
 
 def callback_fun(arg):
     try:
@@ -470,6 +482,12 @@ def Clear_Chat() -> None:
     st.rerun()
 
 
+def Delete_Files():
+
+    st.session_state.loaded_content = ""
+    st.session_state.key += "1"     # HACK use the following two lines to reset update the file_uploader key
+    st.rerun()
+
 def Show_Messages(msg_placeholder):
 
     messages_str = []
@@ -493,23 +511,19 @@ def Show_Messages(msg_placeholder):
     msg = str("\n\n".join(messages_str))
     msg_placeholder.markdown(msg, unsafe_allow_html=True)
     
-def Show_Plot(plot_placeholder):
-
-    if len(st.session_state.code_section[0]) > 10:
-        print(st.session_state.code_section[0])
-        try:
-            exec(st.session_state.code_section[0])
-            plot_placeholder.pyplot(exec(st.session_state.code_section[0]))
-        except Exception as ex:
-            print(f"Unable to execute code: {ex}")
-            plot_placeholder.warning("Unable to execute the code")
-
 
 @st.cache_data()
 def Create_LLM(model_id:str, max_new_tokens:int):
 
     llm_hf = None
-    if "Mixtral" in model_id or "Qwen" in model_id:
+    if "Mixtral" in model_id:
+        llm_hf = HuggingFaceEndpoint(
+            repo_id=model_id, 
+            max_new_tokens=max_new_tokens,
+            temperature=0.7,
+            token=HUGGINGFACEHUB_API_TOKEN,
+        )
+    elif "Qwen" in model_id:
         llm_hf = HuggingFaceEndpoint(
             repo_id=model_id, 
             max_new_tokens=max_new_tokens,
@@ -560,30 +574,33 @@ def LLM_Completion(chain, inputs):
 ##############################################
 def main(argv):
 
+    args = parse_args(sys.argv[1:])
+    st.session_state.is_local = args.local
+    
     Main_Title(st.session_state.locale.title[0] + " (v0.0.1)")
 
     #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct","Chinese-Mixtral-instruct", "Codegemma-7b-it"))
     if st.session_state.locale == en:
-        #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", "CodeQwen1.5-7B-Chat"))
-        version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct",)) # CodeQwen cannot be deployed on streamlit space -(
+        if st.session_state.is_local:
+            version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", "CodeQwen1.5-7B-Chat"))
+        else:
+            version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct",)) # CodeQwen cannot be deployed on streamlit space -(
     else:
-        #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("CodeQwen1.5-7B-Chat", "Mixtral-8x7B-Instruct", ))
-        version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", ))
+        if st.session_state.is_local:
+            version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("CodeQwen1.5-7B-Chat", "Mixtral-8x7B-Instruct", ))
+        else:
+            version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", ))
     
     if version == "Mixtral-8x7B-Instruct":
         # Use Mixtral model
         st.session_state.llm = "mistralai/Mixtral-8x7B-Instruct-v0.1"
         st.session_state.max_new_tokens = 4096
-    elif version.startswith("Qwen"):
+    elif version.startswith("CodeQwen"):
         st.session_state.llm = "Qwen/CodeQwen1.5-7B-Chat"
         st.session_state.max_new_tokens = 4096
     elif version.startswith("Codegemma"):
         st.session_state.llm = "google/codegemma-7b-it"
         st.session_state.max_new_tokens = 1024
-    #elif version.startswith("GPT-4"):
-    #    # USe GPT-4.5 model
-    #    st.session_state.llm = "gpt-4"
-    #    st.session_state.max_new_tokens = 4096
     else:
         # Use Mixtral model
         st.session_state.llm = "mistralai/Mixtral-8x7B-Instruct-v0.1"
@@ -623,20 +640,28 @@ def main(argv):
 
     with tab_chat:
         msg_placeholder = st.empty()
-        plot_placeholder = st.empty()
 
         Show_Messages(msg_placeholder)
         st.session_state.gtts_placeholder = st.empty()
 
-        st.session_state.new_topic_button = st.button(label=st.session_state.locale.chat_clear_btn[0], key="newTopic", on_click=Clear_Chat)
-        st.session_state.uploaded_file_placehoilder = st.empty()
+#        st.session_state.new_topic_button = st.button(label=st.session_state.locale.chat_clear_btn[0], key="newTopic", on_click=Clear_Chat)
+        st.session_state.uploading_file_placeholder = st.empty()
+        st.session_state.buttons_placeholder = st.empty()
         st.session_state.input_placeholder = st.empty()
 
-        with st.session_state.uploaded_file_placehoilder:
-            uploaded_file = st.file_uploader(label=st.session_state.locale.file_upload_label[0], type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False, label_visibility="collapsed")
+        with st.session_state.uploading_file_placeholder:
+            #uploaded_file = st.file_uploader(label=st.session_state.locale.file_upload_label[0], type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False, label_visibility="collapsed")
+            uploaded_file = st.file_uploader(label=st.session_state.locale.file_upload_label[0], type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False,)
             if uploaded_file is not None:
                 #bytes_data = uploaded_file.read()
                 st.session_state.loaded_content = libs.GetContexts(uploaded_file)
+
+        with st.session_state.buttons_placeholder:
+            c1, c2 = st.columns(2)
+            with c1:
+                st.session_state.new_topic_button = st.button(label=st.session_state.locale.chat_clear_btn[0], key="newTopic", on_click=Clear_Chat)
+            with c2:
+                st.session_state.clear_doc_button = st.button(label=st.session_state.locale.clear_doc_btn[0], key="clearDoc", on_click=Delete_Files)
 
         with st.session_state.input_placeholder.form(key="my_form", clear_on_submit = True):
             user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=6000)
@@ -662,10 +687,6 @@ def main(argv):
                 st.session_state.message_count += 1
                 #st.session_state.total_tokens += tokens
                 Show_Messages(msg_placeholder)
-                if len(st.session_state.code_section) > 1:
-                    if len(st.session_state.code_section[0]) > 10:
-                        Show_Plot(plot_placeholder)
-
                 Show_Audio_Player(generated_text)
 
                 save_log(prompt, generated_text, st.session_state.total_tokens)
@@ -679,6 +700,9 @@ if __name__ == "__main__":
 
     if "user_ip" not in st.session_state:
         st.session_state.user_ip = get_client_ip()
+
+    if "is_local" not in st.session_state:
+        st.session_state.is_local = False
 
     if "loaded_content" not in st.session_state:
         st.session_state.loaded_content = ""
