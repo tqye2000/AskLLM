@@ -49,6 +49,8 @@ HUGGINGFACEHUB_API_TOKEN = st.secrets["HF_API_Token"]
 #os.environ["HUGGINGFACEHUB_API_TOKEN"] = "hf_xxxxxxxxxxxxxxxxxxxxxx"
 
 sendmail = True
+EN_BASE_PROMPT = [{"role": "system", "content": "You are a helpful assistant who can answer or handle all my queries!"}]
+ZW_BASE_PROMPT = [{"role": "system", "content": "You are a helpful assistant who can answer or handle all my queries! Please response in Chinese where possible!"}]
 
 class Locale:    
     ai_role_options: List[str]
@@ -65,6 +67,7 @@ class Locale:
     chat_run_btn: str
     chat_clear_btn: str
     clear_doc_btn: str
+    enable_search_label: str
     chat_clear_note: str
     file_upload_label: str
     login_prompt: str
@@ -92,6 +95,7 @@ class Locale:
                 chat_run_btn,
                 chat_clear_btn,
                 clear_doc_btn,
+                enable_search_label,
                 chat_clear_note,
                 file_upload_label,
                 login_prompt,
@@ -118,6 +122,7 @@ class Locale:
         self.chat_run_btn= chat_run_btn,
         self.chat_clear_btn= chat_clear_btn,
         self.clear_doc_btn = clear_doc_btn,
+        self.enable_search_label = enable_search_label,
         self.chat_clear_note= chat_clear_note,
         self.file_upload_label = file_upload_label,
         self.login_prompt= login_prompt,
@@ -160,6 +165,7 @@ en = Locale(
     chat_run_btn="✔️ Submit",
     chat_clear_btn=":cl: New Topic",
     clear_doc_btn=":x: Clear Doc",
+    enable_search_label="Enable Web Search",
     chat_clear_note="Note: \nThe information generated from each dialogue will be transferred to the AI model as temporary memory, with a limit of ten records being retained. If the upcoming topic does not relate to the previous conversation, please select the 'New Topic' button. This ensures that the new topic remains unaffected by any prior content!",
     file_upload_label="You can chat with an uploaded file (your file will never be saved anywhere)",
     login_prompt="Login",
@@ -188,6 +194,7 @@ zw = Locale(
     chat_run_btn="✔️ 提交",
     chat_clear_btn=":cl: 新话题",
     clear_doc_btn="❌ 清空文件",
+    enable_search_label="开通搜索",
     chat_clear_note="注意：\n每条对话产生的信息将作为临时记忆输入给AI模型，并保持至多十条记录。若接下来的话题与之前的不相关，请点击“新话题”按钮，以确保新话题不会受之前内容的影响，同时也有助于节省字符传输量。谢谢！",
     file_upload_label="你可以询问一个上传的文件（文件内容只在内存，不会被保留）",
     login_prompt="登陆：",
@@ -282,7 +289,10 @@ def callback_fun(arg):
     if len(sys_msg.strip()) > 10:
         SYS_PROMPT = [{"role": "system", "content": sys_msg}]
     else:
-        SYS_PROMPT = [{"role": "system", "content": "You are a helpful assistant who can answer or handle all my queries!"}]
+        if st.session_state.locale is zw:
+            SYS_PROMPT = [{"role": "system", "content": "You are a helpful assistant who can answer or handle all my queries! Please reply in Chinese where possible!"}]
+        else:
+            SYS_PROMPT = [{"role": "system", "content": "You are a helpful assistant who can answer or handle all my queries!"}]
 
     st.session_state.messages = SYS_PROMPT
 
@@ -468,12 +478,14 @@ def Login() -> str:
 
 
 def Clear_Chat() -> None:
-    st.session_state.past = []
     st.session_state.messages = []
-    st.session_state.messages = BASE_PROMPT
+    if st.session_state.locale == zw:
+        st.session_state.messages = ZW_BASE_PROMPT
+    else:
+        st.session_state.messages = EN_BASE_PROMPT
+        
     st.session_state.user_text = ""
     st.session_state.loaded_content = ""
-    #st.session_state.locale = zw
 
     st.session_state["context_select" + current_user + "value"] = 'General Assistant'
     st.session_state["context_input" + current_user + "value"] = ""
@@ -577,9 +589,8 @@ def main(argv):
     args = parse_args(sys.argv[1:])
     st.session_state.is_local = args.local
     
-    Main_Title(st.session_state.locale.title[0] + " (v0.0.1)")
+    Main_Title(st.session_state.locale.title[0] + " (v0.0.2)")
 
-    #version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct","Chinese-Mixtral-instruct", "Codegemma-7b-it"))
     if st.session_state.locale == en:
         if st.session_state.is_local:
             version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", "CodeQwen1.5-7B-Chat"))
@@ -598,21 +609,19 @@ def main(argv):
     elif version.startswith("CodeQwen"):
         st.session_state.llm = "Qwen/CodeQwen1.5-7B-Chat"
         st.session_state.max_new_tokens = 4096
-    elif version.startswith("Codegemma"):
-        st.session_state.llm = "google/codegemma-7b-it"
-        st.session_state.max_new_tokens = 1024
     else:
         # Use Mixtral model
         st.session_state.llm = "mistralai/Mixtral-8x7B-Instruct-v0.1"
         st.session_state.max_new_tokens = 4096
 
+
+    # ====== Build Model Chain ========
+    chain = Create_Model_Chain(st.session_state.llm, st.session_state.max_new_tokens)
+
+    ## ----- AI Role  --------
     st.session_state.role_placeholder = st.empty()        # showing system role selected
     st.session_state.role_placeholder = st.info(st.session_state.locale.role_tab_label[0] + ": **" + st.session_state["context_select" + current_user + "value"] + "**")
 
-    # Build Model Chain
-    chain = Create_Model_Chain(st.session_state.llm, st.session_state.max_new_tokens)
-
-    ## ----- Start --------
     tab_chat, tab_context = st.tabs([st.session_state.locale.chat_tab_label[0], st.session_state.locale.role_tab_label[0]])
 
     with tab_context:
@@ -638,30 +647,38 @@ def main(argv):
             args=("context_input",),
         )
 
+    ## ----- Chat Tab  --------
     with tab_chat:
         msg_placeholder = st.empty()
 
+        ## ----- Show Previous Chats if Any --------
         Show_Messages(msg_placeholder)
         st.session_state.gtts_placeholder = st.empty()
 
-#        st.session_state.new_topic_button = st.button(label=st.session_state.locale.chat_clear_btn[0], key="newTopic", on_click=Clear_Chat)
         st.session_state.uploading_file_placeholder = st.empty()
         st.session_state.buttons_placeholder = st.empty()
         st.session_state.input_placeholder = st.empty()
 
         with st.session_state.uploading_file_placeholder:
-            #uploaded_file = st.file_uploader(label=st.session_state.locale.file_upload_label[0], type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False, label_visibility="collapsed")
-            uploaded_file = st.file_uploader(label=st.session_state.locale.file_upload_label[0], type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False,)
-            if uploaded_file is not None:
-                #bytes_data = uploaded_file.read()
-                st.session_state.loaded_content = libs.GetContexts(uploaded_file)
+            col1, col2 = st.columns(spec=[4,1])
+            with col1:
+                uploaded_file = st.file_uploader(label=st.session_state.locale.file_upload_label[0], type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False,)
+                if uploaded_file is not None:
+                    #bytes_data = uploaded_file.read()
+                    st.session_state.loaded_content = libs.GetContexts(uploaded_file)
+                    st.session_state.enable_search = False
+            with col2:
+                st.write("")
+                st.write("")
+                st.write("")
+                st.session_state.clear_doc_button = st.button(label=st.session_state.locale.clear_doc_btn[0], key="clearDoc", on_click=Delete_Files)
 
         with st.session_state.buttons_placeholder:
             c1, c2 = st.columns(2)
             with c1:
                 st.session_state.new_topic_button = st.button(label=st.session_state.locale.chat_clear_btn[0], key="newTopic", on_click=Clear_Chat)
             with c2:
-                st.session_state.clear_doc_button = st.button(label=st.session_state.locale.clear_doc_btn[0], key="clearDoc", on_click=Delete_Files)
+                st.session_state.enable_search = st.checkbox(label=st.session_state.locale.enable_search_label[0], value=st.session_state.enable_search)
 
         with st.session_state.input_placeholder.form(key="my_form", clear_on_submit = True):
             user_input = st.text_area(label=st.session_state.locale.chat_placeholder[0], value=st.session_state.user_text, max_chars=6000)
@@ -670,10 +687,15 @@ def main(argv):
         if send_button :
             print(f"{st.session_state.user}: {user_input}")
             if(user_input.strip() != ''):
-                if st.session_state.loaded_content.strip() != "":
-                    prompt = f"<CONTEXT>{st.session_state.loaded_content.strip()}</CONTEXT>" + "\n\n" + user_input.strip()
+                if st.session_state.enable_search:
+                    #st.session_state.loaded_content = libs.Search_WiKi(user_input.strip())
+                    st.session_state.loaded_content = libs.Search_DuckDuckGo(user_input.strip())
+                    #print(st.session_state.loaded_content)
+                if st.session_state.loaded_content != "":
+                    prompt = f"<CONTEXT>{st.session_state.loaded_content}</CONTEXT>\n\n {user_input.strip()}"
                 else:
                     prompt = user_input.strip()
+                    
                 st.session_state.messages += [{"role": "user", "content": prompt}]
                 
                 with st.spinner('Wait ...'):
@@ -698,6 +720,9 @@ if __name__ == "__main__":
     if "locale" not in st.session_state:
         st.session_state.locale = en
 
+    if "lang_index" not in st.session_state:
+        st.session_state.lang_index = 0
+        
     if "user_ip" not in st.session_state:
         st.session_state.user_ip = get_client_ip()
 
@@ -706,6 +731,9 @@ if __name__ == "__main__":
 
     if "loaded_content" not in st.session_state:
         st.session_state.loaded_content = ""
+
+    if "enable_search" not in st.session_state:
+        st.session_state.enable_search = False
 
     if "message_count" not in st.session_state:
         st.session_state.message_count = 0
@@ -722,9 +750,8 @@ if __name__ == "__main__":
     if 'key' not in st.session_state:
         st.session_state.key = str(randint(1000, 10000000))    
 
-    BASE_PROMPT = [{"role": "system", "content": "You are a helpful assistant who can answer or handle all my queries!"}]
     if "messages" not in st.session_state:
-        st.session_state.messages = BASE_PROMPT
+        st.session_state.messages = EN_BASE_PROMPT
     
     st.markdown(
             """
@@ -742,11 +769,13 @@ if __name__ == "__main__":
 
     local_css("style.css")
 
-    language = st.sidebar.selectbox(st.session_state.locale.choose_language[0], ("English", "中文"))
+    language = st.sidebar.selectbox(st.session_state.locale.choose_language[0], ("English", "中文"), index=st.session_state.lang_index)
     if language == "English":
         st.session_state.locale = en
+        st.session_state.lang_index = 0
     else:
         st.session_state.locale = zw
+        st.session_state.lang_index = 1
         
     st.sidebar.button(st.session_state.locale.chat_clear_btn[0], on_click=Clear_Chat)
     st.sidebar.markdown(st.session_state.locale.chat_clear_note[0])

@@ -2,6 +2,10 @@ from langchain_community.document_loaders import UnstructuredFileLoader
 from langchain_community.document_loaders import UnstructuredWordDocumentLoader
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import UnstructuredPowerPointLoader
+#from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchResults
+import wikipedia
+
 import os
 import re
 
@@ -221,7 +225,66 @@ def GetContexts(uploaded_file):
         except Exception as ex:
             pass
 
-    return Content
+    return Content.strip()
+
+def Search_WiKi(query: str) -> str:
+
+    rets = ""
+    # Search for the title related to query
+    search_results = wikipedia.search(query, results=2)
+    if search_results:
+        result = {}
+        result_title = search_results[0]
+        print(f"Title related to {query}: {result_title}")
+        rets += f"<Title>{result_title}</Title>:\n"
+
+        # Get a summary of the article
+        summary = wikipedia.summary(result_title, sentences=5)
+        print(f"Summary:\n{summary}")
+        rets += f"<Summary>{summary}</Summary>"
+        rets += "\n\n"
+    else:
+        print(f"No relevant results found for: {query}.")
+
+    return rets
+
+#def Search_DuckDuckGo(query: str) -> str:
+
+#    rets = ""
+#    # Search for the title related to query
+#    search_results = ddgs.text(query, max_results=5)
+#    for result in search_results:
+#        result_title = search_results['title']
+#        print(f"Title related to {query}: {result['title']}")
+#        rets += f"<Title>{result['title']}</Title>:\n"
+
+#        print(f"URL:\n{result['url']}")
+#        rets += f"<Summary>{result['body']}</Summary>"
+#        rets += "\n\n"
+
+#    return rets
+
+def Search_DuckDuckGo(query: str) -> str:
+    #duck_search = DuckDuckGoSearchRun()
+    #duck_search = DuckDuckGoSearchResults(backend="news")
+    duck_search = DuckDuckGoSearchResults()
+    rets = duck_search.run(query)
+    print(f"Search results: {rets}")
+
+    return rets
+
+#duck_search = DuckDuckGoSearchAPIWrapper()
+#Web_Search = StructuredTool.from_function(
+#        name="Current Search",
+#        func=duck_search.run,
+#        description="Useful when you need to answer questions about current events or the current state of the world."
+#    )
+
+#serp_search = SerpAPIWrapper()
+#Web_Search = StructuredTool.from_function(name="Current Search",
+#                   func=serp_search.run,
+#                   description="Useful when you need to answer questions about current events or the current state of the world."
+#                   )
 
 #@st.cache_data()
 #def get_remote_ip() -> str:
