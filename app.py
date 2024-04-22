@@ -1,11 +1,12 @@
 ##################################################################
-# Gateway to LLMs
+# Chat with Open Source LLMs
 #
 # History
 # When      | Who            | What
 # 15/03/2024| Tian-Qing Ye   | Created
 # 21/03/2024| Tian-Qing Ye   | Further developed
 # 16/04/2024| Tian-Qing Ye   | Add support of CodeQwen1.5-7B-Chat
+# 22/04/2024| Tian-Qing Ye   | Enable search on duckduckgo
 ##################################################################
 import streamlit as st
 from streamlit_javascript import st_javascript
@@ -777,7 +778,7 @@ if __name__ == "__main__":
         st.session_state.locale = zw
         st.session_state.lang_index = 1
         
-    st.sidebar.button(st.session_state.locale.chat_clear_btn[0], on_click=Clear_Chat)
+    #st.sidebar.button(st.session_state.locale.chat_clear_btn[0], on_click=Clear_Chat)
     st.sidebar.markdown(st.session_state.locale.chat_clear_note[0])
     st.sidebar.markdown(st.session_state.locale.support_message[0])
 
