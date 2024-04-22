@@ -7,3 +7,4 @@ langdetect
 gtts
 streamlit_javascript
 duckduckgo_search
+wikipedia
