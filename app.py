@@ -689,7 +689,7 @@ def main(argv):
                 Show_Messages(msg_placeholder)
                 Show_Audio_Player(generated_text)
 
-                save_log(prompt, generated_text, st.session_state.total_tokens)
+                save_log(user_input.strip(), generated_text, st.session_state.total_tokens)
 
 ##############################
 if __name__ == "__main__":
