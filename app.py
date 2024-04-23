@@ -687,16 +687,20 @@ def main(argv):
 
         if send_button :
             print(f"{st.session_state.user}: {user_input}")
-            if(user_input.strip() != ''):
+            user_input = user_input.strip()
+            if(user_input != ''):
+                lang = detect(user_input)
                 if st.session_state.enable_search:
-                    #st.session_state.loaded_content = libs.Search_WiKi(user_input.strip())
-                    st.session_state.loaded_content = libs.Search_DuckDuckGo(user_input.strip())
+                    #st.session_state.loaded_content = libs.Search_WiKi(user_input)
+                    st.session_state.loaded_content = libs.Search_DuckDuckGo(user_input)
                     #print(st.session_state.loaded_content)
                 if st.session_state.loaded_content != "":
-                    prompt = f"<CONTEXT>{st.session_state.loaded_content}</CONTEXT>\n\n {user_input.strip()}"
+                    prompt = f"<CONTEXT>{st.session_state.loaded_content}</CONTEXT>\n\n {user_input}"
                 else:
-                    prompt = user_input.strip()
+                    prompt = user_input
                     
+                if lang in ['zh', 'zh-cn']:
+                    prompt = "The human can only understand Chinese. Please provide your response in Chinese!\n\n" + prompt
                 st.session_state.messages += [{"role": "user", "content": prompt}]
                 
                 with st.spinner('Wait ...'):
