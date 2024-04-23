@@ -700,7 +700,7 @@ def main(argv):
                 else:
                     prompt = user_input
                     
-                if lang in ['zh', 'zh-cn']:
+                if lang in ['zh', 'zh-cn', 'zh-CN', 'zh-tw', 'zh-TW']:
                     prompt = "The human can only understand Chinese. Please provide your response in Chinese!\n\n" + prompt
                 st.session_state.messages += [{"role": "user", "content": prompt}]
                 
