@@ -88,7 +88,7 @@ def get_docx_data(filepath:str) -> str:
     '''
     File types: docx
     '''
-    loader = UnstructuredWordDocumentLoader(filepath)
+    loader = UnstructuredWordDocumentLoader(filepath, mode="single")
 
     data = loader.load()
     doc = data[0]
@@ -99,7 +99,7 @@ def get_ppt_data(filepath:str) -> str:
     '''
     File types: powerpoint document
     '''
-    loader = UnstructuredPowerPointLoader(filepath)
+    loader = UnstructuredPowerPointLoader(filepath, mode="single")
     docs = loader.load()
     doc = docs[0]
 
@@ -122,7 +122,7 @@ def get_unstructured_data(filepath) -> str:
     '''
     File types: text, html
     '''
-    loader = UnstructuredFileLoader(filepath)
+    loader = UnstructuredFileLoader(filepath, mode="single")
     docs = loader.load()
     doc = docs[0]
 

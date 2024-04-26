@@ -657,6 +657,7 @@ def main(argv):
         st.session_state.gtts_placeholder = st.empty()
 
         st.session_state.uploading_file_placeholder = st.empty()
+        st.session_state.uploaded_filename_placeholder = st.empty()
         st.session_state.buttons_placeholder = st.empty()
         st.session_state.input_placeholder = st.empty()
 
@@ -667,7 +668,14 @@ def main(argv):
                 if uploaded_file is not None:
                     #bytes_data = uploaded_file.read()
                     st.session_state.loaded_content = libs.GetContexts(uploaded_file)
-                    st.session_state.enable_search = False
+                    doc_len = len(st.session_state.loaded_content)
+                    if doc_len < 2:
+                        print(f"Loading document failed:  {ierror}")
+                        st.session_state.uploaded_filename_placeholder.warning(f"Loading document failed!")
+                    else:
+                        print(f"The size of the document:  {len(st.session_state.loaded_content)}")
+                        st.session_state.uploaded_filename_placeholder.write(f"{uploaded_file.name} ({doc_len})")
+                        st.session_state.enable_search = False
             with col2:
                 st.write("")
                 st.write("")
@@ -768,6 +776,12 @@ if __name__ == "__main__":
                     }}
                     .sidebar .sidebar-content {{
                         width: 200px;
+                    }}
+                    .st-emotion-cache-fis6aj {{
+                        display: none;
+                    }}
+                    .st-emotion-cache-9ycgxx {{
+                        display: none;
                     }}
                 </style>""".format(padding_top=1, padding_bottom=10),
             unsafe_allow_html=True,
