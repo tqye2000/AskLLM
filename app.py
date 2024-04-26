@@ -662,7 +662,7 @@ def main(argv):
         st.session_state.input_placeholder = st.empty()
 
         with st.session_state.uploading_file_placeholder:
-            col1, col2 = st.columns(spec=[4,1])
+            col1, col2 = st.columns(spec=[2,1])
             with col1:
                 uploaded_file = st.file_uploader(label=st.session_state.locale.file_upload_label[0], type=['docx', 'txt', 'pdf', 'csv'],key=st.session_state.key, accept_multiple_files=False,)
                 if uploaded_file is not None:
@@ -670,10 +670,9 @@ def main(argv):
                     st.session_state.loaded_content = libs.GetContexts(uploaded_file)
                     doc_len = len(st.session_state.loaded_content)
                     if doc_len < 2:
-                        print(f"Loading document failed:  {ierror}")
                         st.session_state.uploaded_filename_placeholder.warning(f"Loading document failed!")
                     else:
-                        print(f"The size of the document:  {len(st.session_state.loaded_content)}")
+                        #print(f"The size of the document:  {len(st.session_state.loaded_content)}")
                         st.session_state.uploaded_filename_placeholder.write(f"{uploaded_file.name} ({doc_len})")
                         st.session_state.enable_search = False
             with col2:
