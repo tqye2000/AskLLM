@@ -109,12 +109,15 @@ def get_pdf_data(filepath:str) -> str:
     '''
     File types: pdf
     '''
-    loader = PyPDFLoader(filepath)
+    contents = ""
+    loader = PyPDFLoader(filepath, extract_images=True)
     docs = loader.load()
-    doc = docs[0]
+    for doc in docs:
+        #(f"docs: {doc}")
+        contents += doc.page_content + "\n\n"
 
-    return doc.page_content
-
+    return contents
+    
 def get_unstructured_data(filepath) -> str:
     '''
     File types: text, html

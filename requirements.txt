@@ -3,8 +3,10 @@ transformers
 huggingface_hub
 langchain
 langchain_community
+rapidocr-onnxruntime
 langdetect
 gtts
+pypdf
 streamlit_javascript
 duckduckgo_search
 wikipedia
