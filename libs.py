@@ -88,12 +88,14 @@ def get_docx_data(filepath:str) -> str:
     '''
     File types: docx
     '''
-    loader = UnstructuredWordDocumentLoader(filepath, mode="single")
+    contents = ""
+    loader = UnstructuredWordDocumentLoader(filepath)
+    docs = loader.load()
+    for doc in docs:
+        #(f"docs: {doc}")
+        contents += doc.page_content + "\n\n"
 
-    data = loader.load()
-    doc = data[0]
-
-    return doc.page_content
+    return contents
 
 def get_ppt_data(filepath:str) -> str:
     '''
@@ -110,7 +112,8 @@ def get_pdf_data(filepath:str) -> str:
     File types: pdf
     '''
     contents = ""
-    loader = PyPDFLoader(filepath, extract_images=True)
+    #loader = PyPDFLoader(filepath, extract_images=True)
+    loader = PyPDFLoader(filepath)
     docs = loader.load()
     for doc in docs:
         #(f"docs: {doc}")
@@ -219,7 +222,7 @@ def GetContexts(uploaded_file):
                 Content = text_preprocessing(temp.name)
     except Exception as ex:
         print(f"Loading file content failed: {ex}")
-        Content = ""
+        Content = f"Loading file failed: {ex}"
         error = 1
 
     if os.path.exists(tempFile):
@@ -228,7 +231,7 @@ def GetContexts(uploaded_file):
         except Exception as ex:
             pass
 
-    return Content.strip()
+    return Content, error
 
 def Search_WiKi(query: str) -> str:
 
