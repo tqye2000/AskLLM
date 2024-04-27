@@ -3,6 +3,7 @@ huggingface_hub
 langchain
 langchain_community
 unstructured
+docx
 rapidocr-onnxruntime
 langdetect
 gtts
