@@ -2,6 +2,7 @@ transformers
 huggingface_hub
 langchain
 langchain_community
+unstructured
 rapidocr-onnxruntime
 langdetect
 gtts
