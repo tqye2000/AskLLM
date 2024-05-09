@@ -2,6 +2,8 @@ transformers
 huggingface_hub
 langchain
 langchain_community
+unstructured
+python-docx
 rapidocr-onnxruntime
 langdetect
 gtts
