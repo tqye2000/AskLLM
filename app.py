@@ -71,6 +71,7 @@ class Locale:
     enable_search_label: str
     chat_clear_note: str
     file_upload_label: str
+    temperature_label: str
     login_prompt: str
     logout_prompt: str
     username_prompt: str
@@ -99,6 +100,7 @@ class Locale:
                 enable_search_label,
                 chat_clear_note,
                 file_upload_label,
+                temperature_label,
                 login_prompt,
                 logout_prompt,
                 username_prompt,
@@ -126,6 +128,7 @@ class Locale:
         self.enable_search_label = enable_search_label,
         self.chat_clear_note= chat_clear_note,
         self.file_upload_label = file_upload_label,
+        self.temperature_label = temperature_label,
         self.login_prompt= login_prompt,
         self.logout_prompt= logout_prompt,
         self.username_prompt= username_prompt,
@@ -168,7 +171,8 @@ en = Locale(
     clear_doc_btn=":x: Clear Doc",
     enable_search_label="Enable Web Search",
     chat_clear_note="Note: \nThe information generated from each dialogue will be transferred to the AI model as temporary memory, with a limit of ten records being retained. If the upcoming topic does not relate to the previous conversation, please select the 'New Topic' button. This ensures that the new topic remains unaffected by any prior content!",
-    file_upload_label="You can chat with an uploaded file (your file will never be saved anywhere)",
+    file_upload_label="You can chat with an uploaded file (your file will never be saved anywhere",
+    temperature_label="Model Temperature",
     login_prompt="Login",
     logout_prompt="Logout",
     username_prompt="Username/password is incorrect",
@@ -198,6 +202,7 @@ zw = Locale(
     enable_search_label="开通搜索",
     chat_clear_note="注意：\n每条对话产生的信息将作为临时记忆输入给AI模型，并保持至多十条记录。若接下来的话题与之前的不相关，请点击“新话题”按钮，以确保新话题不会受之前内容的影响，同时也有助于节省字符传输量。谢谢！",
     file_upload_label="你可以询问一个上传的文件（文件内容只在内存，不会被保留）",
+    temperature_label="模型温度",
     login_prompt="登陆：",
     logout_prompt="退出",
     username_prompt="用户名/密码错误",
@@ -533,20 +538,20 @@ def Create_LLM(model_id:str, max_new_tokens:int):
         llm_hf = HuggingFaceEndpoint(
             repo_id=model_id, 
             max_new_tokens=max_new_tokens,
-            temperature=0.7,
+            temperature=st.session_state.temperature,
             token=HUGGINGFACEHUB_API_TOKEN,
         )
     elif "Qwen" in model_id:
         llm_hf = HuggingFaceEndpoint(
             repo_id=model_id, 
             max_new_tokens=max_new_tokens,
-            temperature=0.7,
+            temperature=st.session_state.temperature,
             token=HUGGINGFACEHUB_API_TOKEN,
         )
     else:
         llm_hf = HuggingFaceHub(
             repo_id=model_id,
-            model_kwargs={"temperature": 0.7, 
+            model_kwargs={"temperature": st.session_state.temperature, 
                           "max_new_tokens": max_new_tokens, 
                           "return_full_text": False, 
                           "repetition_penalty" : 1.2}
@@ -591,7 +596,8 @@ def main(argv):
     st.session_state.is_local = args.local
     
     Main_Title(st.session_state.locale.title[0] + " (v0.0.2)")
-
+    st.session_state.user_ip = get_client_ip()
+    
     if st.session_state.locale == en:
         if st.session_state.is_local:
             version = st.selectbox(st.session_state.locale.choose_llm_prompt[0], ("Mixtral-8x7B-Instruct", "CodeQwen1.5-7B-Chat"))
@@ -742,6 +748,9 @@ if __name__ == "__main__":
     if "is_local" not in st.session_state:
         st.session_state.is_local = False
 
+    if "temperature" not in st.session_state:
+        st.session_state.temperature = 0.7
+
     if "loaded_content" not in st.session_state:
         st.session_state.loaded_content = ""
 
@@ -796,6 +805,7 @@ if __name__ == "__main__":
         st.session_state.locale = zw
         st.session_state.lang_index = 1
         
+    st.session_state.temperature = st.sidebar.slider(label=st.session_state.locale.temperature_label[0], min_value=0.1, max_value=2.0, value=0.7, step=0.05)
     #st.sidebar.button(st.session_state.locale.chat_clear_btn[0], on_click=Clear_Chat)
     st.sidebar.markdown(st.session_state.locale.chat_clear_note[0])
     st.sidebar.markdown(st.session_state.locale.support_message[0])
