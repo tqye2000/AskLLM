@@ -436,8 +436,8 @@ def Show_Audio_Player(ai_content: str) -> None:
             #else:
             #    tts = gTTS(text=ai_content, lang='en')
             tts.write_to_fp(sound_file)
-            st.session_state.gtts_placeholder.write(st.session_state.locale.stt_placeholder)
-            st.session_state.gtts_placeholder.audio(sound_file)
+            st.write(st.session_state.locale.stt_placeholder)
+            st.audio(sound_file)
     except gTTSError as err:
         #st.session_state.gtts_placeholder.error(err)
         save_log("Error", str(err), 0)
@@ -485,18 +485,18 @@ def Login() -> str:
 
 def Clear_Chat() -> None:
     st.session_state.messages = []
-    if st.session_state.locale == zw:
-        st.session_state.messages = ZW_BASE_PROMPT
-    else:
-        st.session_state.messages = EN_BASE_PROMPT
         
     st.session_state.user_text = ""
     st.session_state.loaded_content = ""
 
-    st.session_state["context_select" + current_user + "value"] = 'General Assistant'
-    st.session_state["context_input" + current_user + "value"] = ""
+    #if st.session_state.locale == zw:
+    #    st.session_state.messages = ZW_BASE_PROMPT
+    #else:
+    #    st.session_state.messages = EN_BASE_PROMPT
+    #st.session_state["context_select" + current_user + "value"] = 'General Assistant'
+    #st.session_state["context_input" + current_user + "value"] = ""
 
-    st.session_state.key += "1"     # HACK use the following two lines to reset update the file_uploader key
+    st.session_state.key += "1"        # HACK use the following two lines to reset update the file_uploader key
     st.rerun()
 
 
@@ -506,7 +506,7 @@ def Delete_Files():
     st.session_state.key += "1"     # HACK use the following two lines to reset update the file_uploader key
     st.rerun()
 
-def Show_Messages(msg_placeholder):
+def Show_Messages():
 
     messages_str = []
     for _ in st.session_state["messages"][1:]:
@@ -527,12 +527,15 @@ def Show_Messages(msg_placeholder):
             messages_str.append(f"{role}: {text}")
     
     msg = str("\n\n".join(messages_str))
-    msg_placeholder.markdown(msg, unsafe_allow_html=True)
+    #msg_placeholder.markdown(msg, unsafe_allow_html=True)
+    st.write(msg, unsafe_allow_html=True)
     
 
 @st.cache_data()
 def Create_LLM(model_id:str, max_new_tokens:int):
-
+    """
+    Create a HuggingFace model object
+    """
     llm_hf = None
     if "Mixtral" in model_id:
         llm_hf = HuggingFaceEndpoint(
@@ -659,7 +662,9 @@ def main(argv):
         msg_placeholder = st.empty()
 
         ## ----- Show Previous Chats if Any --------
-        Show_Messages(msg_placeholder)
+        with msg_placeholder:
+            Show_Messages()
+
         st.session_state.gtts_placeholder = st.empty()
 
         st.session_state.uploading_file_placeholder = st.empty()
@@ -727,8 +732,10 @@ def main(argv):
 				# counting the number of messages
                 st.session_state.message_count += 1
                 #st.session_state.total_tokens += tokens
-                Show_Messages(msg_placeholder)
-                Show_Audio_Player(generated_text)
+                with msg_placeholder:
+                    Show_Messages()
+                with st.session_state.gtts_placeholder:
+                    Show_Audio_Player(generated_text)
 
                 save_log(user_input.strip(), generated_text, st.session_state.total_tokens)
 
